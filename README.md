@@ -120,9 +120,15 @@ arms) or `"kick"` (legs flying left and right).
 
 ## Embedding the diagrams elsewhere
 
-The site is deployed to GitHub Pages by `.github/workflows/deploy.yml`
-on every push to `main`. Besides the full essay, it serves chrome-less
-single-diagram pages made for iframes:
+The site lives at https://bennokolartng.github.io/claude-animations/ —
+publish updates with `npm run deploy` (builds and force-pushes the
+`gh-pages` branch). `.github/workflows/deploy.yml` can automate this on
+every push to `main`, but pushing workflow files needs the `workflow`
+OAuth scope: run `gh auth refresh -h github.com -s workflow` once, then
+`git add .github && git commit && git push`.
+
+Besides the full essay, the site serves chrome-less single-diagram
+pages made for iframes:
 
 ```
 …/?embed=pipeline                      specialist RL pipeline (blue, disco)
