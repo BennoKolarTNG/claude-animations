@@ -13,7 +13,6 @@ import type { CSSVarStyle, DiagramTheme } from './diagramTokens'
 
 const STREAM_BLUE = '#4f8cff'
 const LATENT = '#8b5cf6'
-const ACTION = '#f59e0b'
 const TEAL = '#14b8a6'
 
 const PHASES = [
@@ -42,9 +41,9 @@ const PANEL = { x: 510, y: 60, w: 310, h: 178 }
 const WEB = { y: 96, h: 52 }
 const SONIC = { y: 168, h: 56 }
 const GAP_Y = { from: WEB.y + WEB.h, to: SONIC.y }
-const ROBOT = { x: 830, ground: 386, scale: 1.7 }
+const ROBOT = { x: 852, ground: 386, scale: 1.7 }
 const HEAD_TOP = ROBOT.ground - 75 * ROBOT.scale
-const LOOP = { x: 884, y: 262, r: 14 }
+const LOOP = { x: 744, y: 286, r: 14 }
 const LABEL_Y = 408
 
 export interface DeploymentLoopDiagramProps {
@@ -166,15 +165,15 @@ export function DeploymentLoopDiagram({
 
         {/* --- the server on the robot: one teal machine ------------------------ */}
         <rect x={PANEL.x} y={PANEL.y} width={PANEL.w} height={PANEL.h} rx={13} fill="var(--diagram-surface)" stroke={TEAL} strokeWidth={1.8} />
-        <text x={PANEL.x + 14} y={PANEL.y + 24} fontFamily="var(--diagram-font-label)" fontSize={10.5} fontWeight={700} letterSpacing="0.1em" fill={TEAL}>
+        <text x={PANEL.x + 14} y={PANEL.y + 24} fontFamily="var(--diagram-font-label)" fontSize={10.5} fontWeight={700} letterSpacing="0.1em" fill="var(--diagram-ink)">
           ON THE G1 · JETSON
         </text>
         {/* Jetson chip glyph */}
-        <rect x={PANEL.x + PANEL.w - 44} y={PANEL.y + 10} width={30} height={20} rx={4} fill="var(--diagram-bg)" stroke={TEAL} strokeWidth={1.3} />
+        <rect x={PANEL.x + PANEL.w - 44} y={PANEL.y + 10} width={30} height={20} rx={4} fill="var(--diagram-bg)" stroke="var(--diagram-muted)" strokeWidth={1.3} />
         {[0, 1, 2].map((i) => (
           <g key={i}>
-            <line x1={PANEL.x + PANEL.w - 38 + i * 9} y1={PANEL.y + 7} x2={PANEL.x + PANEL.w - 38 + i * 9} y2={PANEL.y + 10} stroke={TEAL} strokeWidth={1.2} />
-            <line x1={PANEL.x + PANEL.w - 38 + i * 9} y1={PANEL.y + 30} x2={PANEL.x + PANEL.w - 38 + i * 9} y2={PANEL.y + 33} stroke={TEAL} strokeWidth={1.2} />
+            <line x1={PANEL.x + PANEL.w - 38 + i * 9} y1={PANEL.y + 7} x2={PANEL.x + PANEL.w - 38 + i * 9} y2={PANEL.y + 10} stroke="var(--diagram-muted)" strokeWidth={1.2} />
+            <line x1={PANEL.x + PANEL.w - 38 + i * 9} y1={PANEL.y + 30} x2={PANEL.x + PANEL.w - 38 + i * 9} y2={PANEL.y + 33} stroke="var(--diagram-muted)" strokeWidth={1.2} />
           </g>
         ))}
 
@@ -197,7 +196,7 @@ export function DeploymentLoopDiagram({
         <FlowParticles x={PANEL.x + 272} y={GAP_Y.from + 2} dx={0.001} y2={GAP_Y.to - 2} spreadStart={0} spreadEnd={0} count={1} duration={0.6} radius={2} shape="square" color={STREAM_BLUE} active={decoding && !staticMode} />
 
         {/* SONIC runtime */}
-        <rect x={PANEL.x + 14} y={SONIC.y} width={PANEL.w - 28} height={SONIC.h} rx={9} fill="var(--diagram-bg)" stroke={decoding ? TEAL : 'var(--diagram-line)'} strokeWidth={1.4} style={{ transition: 'stroke 500ms ease' }} />
+        <rect x={PANEL.x + 14} y={SONIC.y} width={PANEL.w - 28} height={SONIC.h} rx={9} fill="var(--diagram-bg)" stroke={decoding ? LATENT : 'var(--diagram-line)'} strokeWidth={1.4} style={{ transition: 'stroke 500ms ease' }} />
         <text x={PANEL.x + 26} y={SONIC.y + 23} fontFamily="var(--diagram-font-label)" fontSize={11} fontWeight={700} fill="var(--diagram-ink)">
           SONIC RUNTIME
         </text>
@@ -246,10 +245,20 @@ export function DeploymentLoopDiagram({
         <FlowParticles x={LAPTOP.x + 56} y={LAPTOP.ground - 40} y2={ROUTER.y - 19} dx={ROUTER.x - 38 - LAPTOP.x - 56} spreadStart={2} spreadEnd={2} count={5} duration={0.7} color={STREAM_BLUE} active={since('stream') && !staticMode} />
         <FlowParticles x={ROUTER.x + 32} y={ROUTER.y - 27} y2={WEB.y + 25} dx={PANEL.x - 8 - ROUTER.x - 32} spreadStart={2} spreadEnd={2} count={5} duration={0.7} color={STREAM_BLUE} active={since('toServer') && !staticMode} />
 
-        {/* --- one machine: straight dotted tether + one teal data line ---------- */}
-        <path d={`M ${ROBOT.x - 12} ${HEAD_TOP - 4} L ${ROBOT.x - 12} ${PANEL.y + PANEL.h + 4}`} stroke="var(--diagram-muted)" strokeWidth={1.3} strokeDasharray="2 5" strokeLinecap="round" opacity={0.75} />
+        {/* --- one machine: reverse-L dotted tether + one teal data line ---------- */}
+        {/* out of the Jetson's right side, over, and down into the robot's head */}
         <path
-          d={`M ${PANEL.x + PANEL.w - 24} ${SONIC.y + SONIC.h + 2} C ${PANEL.x + PANEL.w + 14} 262, ${ROBOT.x + 22} 274, ${ROBOT.x + 10} ${ROBOT.ground - 62}`}
+          d={`M ${PANEL.x + PANEL.w + 2} 150 L ${ROBOT.x} 150 L ${ROBOT.x} ${HEAD_TOP - 6}`}
+          fill="none"
+          stroke="var(--diagram-muted)"
+          strokeWidth={1.3}
+          strokeDasharray="2 5"
+          strokeLinecap="round"
+          opacity={0.75}
+        />
+        {/* data: from the bottom of the SONIC section to the robot's left middle */}
+        <path
+          d={`M ${PANEL.x + 170} ${PANEL.y + PANEL.h + 2} C ${PANEL.x + 180} 300, ${ROBOT.x - 110} 334, ${ROBOT.x - 36} ${ROBOT.ground - 54}`}
           fill="none"
           stroke={TEAL}
           strokeWidth={1.6}
@@ -258,29 +267,29 @@ export function DeploymentLoopDiagram({
           style={{ opacity: looping ? 0.7 : 0.25 }}
         />
         {/* fast traffic both ways on the one line */}
-        <FlowParticles x={PANEL.x + PANEL.w - 22} y={SONIC.y + SONIC.h + 8} y2={ROBOT.ground - 66} dx={ROBOT.x + 8 - PANEL.x - PANEL.w + 18} spreadStart={3} spreadEnd={3} count={7} duration={0.5} radius={2.1} color={TEAL} active={looping && !staticMode} />
+        <FlowParticles x={PANEL.x + 172} y={PANEL.y + PANEL.h + 8} y2={ROBOT.ground - 56} dx={ROBOT.x - 40 - PANEL.x - 172} spreadStart={3} spreadEnd={3} count={7} duration={0.5} radius={2.1} color={TEAL} active={looping && !staticMode} />
         <g opacity={0.55}>
-          <FlowParticles x={ROBOT.x + 4} y={ROBOT.ground - 60} y2={SONIC.y + SONIC.h + 14} dx={-(ROBOT.x - PANEL.x - PANEL.w + 18)} spreadStart={3} spreadEnd={3} count={6} duration={0.5} radius={1.8} color={TEAL} active={looping && !staticMode} />
+          <FlowParticles x={ROBOT.x - 44} y={ROBOT.ground - 60} y2={PANEL.y + PANEL.h + 12} dx={-(ROBOT.x - 44 - PANEL.x - 176)} spreadStart={3} spreadEnd={3} count={6} duration={0.5} radius={1.8} color={TEAL} active={looping && !staticMode} />
         </g>
         <g className="stage" style={{ transform: `translate(${LOOP.x}px, ${LOOP.y}px) scale(${looping || staticMode ? 1 : 0.6})`, opacity: looping ? 1 : staticMode ? 0.5 : 0 }}>
           <TrainingLoop radius={LOOP.r} spinning={looping && !staticMode} strokeWidth={4} color={TEAL} />
         </g>
-        <text className="math-label" x={LOOP.x + 2} y={LOOP.y + 36} textAnchor="middle" style={{ opacity: looping ? 1 : 0.3, fill: TEAL, transition: 'opacity 600ms ease' } as CSSVarStyle}>
+        <text className="math-label" x={LOOP.x - 4} y={LOOP.y + 40} textAnchor="middle" style={{ opacity: looping ? 1 : 0.3, fill: TEAL, transition: 'opacity 600ms ease' } as CSSVarStyle}>
           50<tspan className="math-sub" dy={3}> Hz</tspan>
         </text>
 
-        {/* --- the robot: big, teal, one thing with its server -------------------- */}
-        <line x1={700} y1={ROBOT.ground} x2={950} y2={ROBOT.ground} stroke="var(--diagram-line)" strokeWidth={1.5} strokeLinecap="round" />
+        {/* --- the robot: big, right under its Jetson, teal-lit -------------------- */}
+        <line x1={720} y1={ROBOT.ground} x2={950} y2={ROBOT.ground} stroke="var(--diagram-line)" strokeWidth={1.5} strokeLinecap="round" />
         <g transform={`translate(${ROBOT.x} ${ROBOT.ground}) scale(${ROBOT.scale})`}>
-          <RobotDancer dancing={!staticMode && looping} move={robotMove} active tint={TEAL} accent={ACTION} stumbling={at('shove')} />
+          <RobotDancer dancing={!staticMode && looping} move={robotMove} active accent={TEAL} stumbling={at('shove')} />
         </g>
-        <WindGust x={926} y={ROBOT.ground - 116} active={at('shove')} />
+        <WindGust x={936} y={ROBOT.ground - 116} active={at('shove')} />
 
         {/* --- labels --------------------------------------------------------------- */}
         <StageLabel x={LAPTOP.x} y={LABEL_Y} text="any browser" active={at('network') || at('pick')} accent={STREAM_BLUE} />
         <StageLabel x={ROUTER.x} y={LABEL_Y} text="router" active={at('stream')} accent={STREAM_BLUE} />
         <StageLabel x={PANEL.x + PANEL.w / 2 - 40} y={LABEL_Y} text="hosted on the g1" active={at('host') || at('toServer') || at('decode')} accent={TEAL} />
-        <StageLabel x={ROBOT.x} y={LABEL_Y} text="dance" active={at('loop') || at('shove') || at('on')} accent={ACTION} />
+        <StageLabel x={ROBOT.x} y={LABEL_Y} text="dance" active={at('loop') || at('shove') || at('on')} accent={TEAL} />
       </DiagramFrame>
     </div>
   )
