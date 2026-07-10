@@ -24,9 +24,9 @@ const PHASES = [
   { name: 'system2', duration: 2600, caption: 'System 2 — a vision-language model — reads all three and plans, at ~10 Hz.' },
   { name: 'system1', duration: 2600, caption: 'System 1 turns the plan into a chunk of upper-body actions.' },
   { name: 'lower', duration: 2400, caption: 'Meanwhile a kinematic planner produces the lower body: stance, steps, balance targets.' },
-  { name: 'hybrid', duration: 2800, caption: 'SONIC’s Hybrid Encoder fuses both halves into the latent space…' },
-  { name: 'decode', duration: 2600, caption: '…decoded into whole-body commands: arms on task, legs on balance.' },
-  { name: 'direct', duration: 3000, caption: 'The upgrade: finetune Gr00t on the latent space itself — teleop format and encoder detour disappear.' },
+  { name: 'hybrid', duration: 2800, caption: 'Both streams meet in SONIC’s Hybrid Encoder — the upper body wrapped as teleop data.' },
+  { name: 'decode', duration: 2600, caption: '…fused into the latents and decoded: arms on task, legs on balance.' },
+  { name: 'direct', duration: 3000, caption: 'The upgrade: finetuned on the latents, Gr00t’s stream routes straight past the teleop format.' },
   { name: 'act', duration: 2600, caption: 'Task above, balance below — one latent language in between.' },
   { name: 'reset', duration: 1000, caption: 'Two systems, one body.' },
 ] as const
@@ -41,18 +41,20 @@ const IN_X = 96
 const CAM = { y: 106, w: 112, h: 64 }
 const PROMPT = { y: 196 }
 const STATE = { y: 272, w: 112, h: 64 }
-const GROOT = { x: 186, y: 70, w: 240, h: 240 }
-const S2 = { x: GROOT.x + 14, y: 104, w: GROOT.w - 28, h: 66 }
-const S1 = { x: GROOT.x + 14, y: 190, w: GROOT.w - 28, h: 66 }
-const CHUNK = { x: 452, y: 116, w: 128, h: 56 }
-const TELEOP = { x: 630, y: 210 }
-const SONIC = { x: 562, y: 268, w: 270, h: 152 }
-const HENC = { x: 580, y: 358, len: 64 }
-const RACK = { x: 664, y: 358 }
-const PLANNER = { x: 300, y: 352, w: 168, h: 48 }
-const ROBOT = { x: 902, ground: 452, scale: 1.15 }
-const ZONE = { x: 862, w: 80, top: 364, waist: 422, bottom: 456 }
-const LABEL_Y = 482
+const GROOT = { x: 186, y: 70, w: 240, h: 212 }
+const S2 = { x: GROOT.x + 14, y: 100, w: GROOT.w - 28, h: 62 }
+const S1 = { x: GROOT.x + 14, y: 176, w: GROOT.w - 28, h: 62 }
+const CHUNK = { x: 246, y: 306, w: 150, h: 50 }
+const PLANNER = { x: 246, y: 386, w: 170, h: 46 }
+const TOP_Y = CHUNK.y + CHUNK.h / 2 // upper-body stream lane
+const BOT_Y = PLANNER.y + PLANNER.h / 2 // lower-body stream lane
+const TELEOP = { x: 505, y: TOP_Y, w: 130, h: 58 }
+const HENC = { x: 598, y: (TOP_Y + BOT_Y) / 2, len: 74 }
+const SONIC = { x: 636, y: 262, w: 196, h: 196 }
+const RACK = { x: 748, y: 316 }
+const ROBOT = { x: 900, ground: 454, scale: 1.5 }
+const ZONE = { x: 856, w: 88, top: 336, waist: 408, bottom: 458 }
+const LABEL_Y = 484
 
 /** Rounded sub-block with bold title + colored subtitle. */
 function SubBlock({
@@ -99,15 +101,17 @@ export interface VlaSplitDiagramProps {
 
 /**
  * The Gr00t × SONIC intersection, drawn concretely: GR00T's three-point
- * input space (image / language / robot state) feeds System 2 then
- * System 1, emitting an upper-body action chunk; a kinematic planner
- * produces the lower body; SONIC's Hybrid Encoder fuses both into the
- * latent space and decodes whole-body commands. The finale bypasses the
- * teleop-format + encoder detour by finetuning Gr00t on the latents.
- * Each phase pulls focus — everything else dims.
+ * input space feeds System 2 then System 1, emitting an upper-body
+ * action chunk; a kinematic planner produces the lower body. The two
+ * streams run in parallel — the upper one through a teleop card (VR
+ * headset + tracked joints that light up with the flow) — into SONIC's
+ * Hybrid Encoder, which straddles the block's edge like an adapter.
+ * Inside, a vertical latent rack decodes to a big task/balance robot.
+ * The finale routes the upper stream up and around the struck teleop
+ * card — finetuned Gr00t speaks latents natively.
  */
 export function VlaSplitDiagram({
-  title = 'Gr00t on SONIC: camera image, language instruction and robot state feed System 2 then System 1, producing an upper-body action chunk; a kinematic planner produces the lower body; SONIC’s Hybrid Encoder fuses both into the latent space, decoded into whole-body commands — until Gr00t is finetuned to write the latents directly, bypassing the teleop detour.',
+  title = 'Gr00t on SONIC: camera image, language instruction and robot state feed System 2 then System 1, producing an upper-body action chunk; a kinematic planner produces the lower body; both streams enter SONIC’s Hybrid Encoder in parallel — the upper one wrapped as teleop data until Gr00t is finetuned to bypass it — and the vertical latent space decodes into a task-and-balance robot.',
   showCaption = true,
   theme,
   className,
@@ -124,6 +128,7 @@ export function VlaSplitDiagram({
 
   const directOn = since('direct')
   const robotOn = since('decode')
+  const teleopFlow = since('hybrid') && !directOn && !staticMode
 
   /** Staged focus: full opacity while relevant, dimmed otherwise. */
   const focus = (...names: PhaseName[]): CSSVarStyle => ({
@@ -133,21 +138,20 @@ export function VlaSplitDiagram({
 
   const robotMove: RobotMove = 'embodied'
   const caption = staticMode
-    ? 'Three inputs → System 2 → System 1 → (teleop → Hybrid Encoder →) latents → whole body.'
+    ? 'Three inputs → System 2 → System 1 → (teleop →) Hybrid Encoder → latents → whole body.'
     : PHASES[index].caption
 
   return (
     <div ref={rootRef} className={className}>
       <DiagramFrame
         title={title}
-        viewBox="0 42 960 460"
+        viewBox="0 42 960 462"
         theme={theme}
         caption={showCaption ? caption : undefined}
         captionKey={caption}
       >
         {/* ================= the three-point input space ================= */}
         <g className="stage" style={focus('inputs', 'system2')}>
-          {/* 1 · image observation */}
           <rect x={IN_X - CAM.w / 2} y={CAM.y - CAM.h / 2} width={CAM.w} height={CAM.h} rx={8} fill="var(--diagram-surface)" stroke={VISION_TOKEN} strokeWidth={1.6} />
           <line x1={IN_X - 30} y1={CAM.y + 16} x2={IN_X + 30} y2={CAM.y + 16} stroke="var(--diagram-muted)" strokeWidth={1.5} strokeLinecap="round" />
           <rect x={IN_X - 6} y={CAM.y + 2} width={12} height={13} rx={2} fill="none" stroke="var(--diagram-ink)" strokeWidth={1.6} />
@@ -158,7 +162,6 @@ export function VlaSplitDiagram({
             image observation
           </text>
 
-          {/* 2 · language instruction */}
           <text x={IN_X} y={PROMPT.y} textAnchor="middle" fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace" fontSize={11} fill={TEXT_TOKEN}>
             "pick up
           </text>
@@ -169,7 +172,6 @@ export function VlaSplitDiagram({
             language instruction
           </text>
 
-          {/* 3 · robot state */}
           <rect x={IN_X - STATE.w / 2} y={STATE.y - STATE.h / 2} width={STATE.w} height={STATE.h} rx={8} fill="var(--diagram-surface)" stroke={STATE_RED} strokeWidth={1.6} />
           <g transform={`translate(${IN_X - 20} ${STATE.y + 24}) scale(0.42)`}>
             <RobotDancer dancing={false} active={false} />
@@ -184,43 +186,42 @@ export function VlaSplitDiagram({
 
         {/* input token streams into System 2 */}
         <FlowParticles x={IN_X + CAM.w / 2 + 4} y={CAM.y} y2={S2.y + 20} dx={GROOT.x - IN_X - CAM.w / 2 - 10} spreadStart={5} spreadEnd={4} count={4} duration={0.85} radius={2} shape="square" color={VISION_TOKEN} active={since('system2') && !staticMode} />
-        <FlowParticles x={IN_X + 42} y={PROMPT.y + 4} y2={S2.y + 34} dx={GROOT.x - IN_X - 46} spreadStart={4} spreadEnd={3} count={4} duration={0.85} radius={2} shape="square" color={TEXT_TOKEN} active={since('system2') && !staticMode} />
-        <FlowParticles x={IN_X + STATE.w / 2 + 4} y={STATE.y} y2={S2.y + 50} dx={GROOT.x - IN_X - STATE.w / 2 - 10} spreadStart={4} spreadEnd={3} count={3} duration={0.85} radius={2} shape="square" color={STATE_RED} active={since('system2') && !staticMode} />
+        <FlowParticles x={IN_X + 42} y={PROMPT.y + 4} y2={S2.y + 32} dx={GROOT.x - IN_X - 46} spreadStart={4} spreadEnd={3} count={4} duration={0.85} radius={2} shape="square" color={TEXT_TOKEN} active={since('system2') && !staticMode} />
+        <FlowParticles x={IN_X + STATE.w / 2 + 4} y={STATE.y} y2={S2.y + 46} dx={GROOT.x - IN_X - STATE.w / 2 - 10} spreadStart={4} spreadEnd={3} count={3} duration={0.85} radius={2} shape="square" color={STATE_RED} active={since('system2') && !staticMode} />
 
         {/* ================= GR00T: two systems, one model ================= */}
         <g className="stage" style={focus('system2', 'system1')}>
           <rect x={GROOT.x} y={GROOT.y} width={GROOT.w} height={GROOT.h} rx={13} fill="var(--diagram-surface)" stroke={since('system2') ? 'var(--diagram-ink)' : 'var(--diagram-line)'} strokeWidth={1.5} style={{ transition: 'stroke 600ms ease' }} />
-          <text x={GROOT.x + 14} y={GROOT.y + 25} fontFamily="var(--diagram-font-label)" fontSize={13.5} fontWeight={700} fill="var(--diagram-ink)">
+          <text x={GROOT.x + 14} y={GROOT.y + 24} fontFamily="var(--diagram-font-label)" fontSize={13.5} fontWeight={700} fill="var(--diagram-ink)">
             GR00T
           </text>
           <SubBlock x={S2.x} y={S2.y} w={S2.w} h={S2.h} title="SYSTEM 2" subtitle="VISION-LANGUAGE MODEL · ~10 HZ" accent={S2_PINK} active={since('system2')}>
             {Array.from({ length: 8 }, (_, i) => (
-              <rect key={i} x={S2.x + 12 + i * 14} y={S2.y + 44} width={10} height={10} rx={2} fill={i < 4 ? VISION_TOKEN : i < 7 ? TEXT_TOKEN : STATE_RED} opacity={since('system2') ? 0.85 : 0.25} style={{ transition: `opacity 400ms ease ${i * 50}ms` }} />
+              <rect key={i} x={S2.x + 12 + i * 14} y={S2.y + 42} width={10} height={10} rx={2} fill={i < 4 ? VISION_TOKEN : i < 7 ? TEXT_TOKEN : STATE_RED} opacity={since('system2') ? 0.85 : 0.25} style={{ transition: `opacity 400ms ease ${i * 50}ms` }} />
             ))}
           </SubBlock>
-          {/* plan flows down into System 1 */}
           <line x1={GROOT.x + GROOT.w / 2} y1={S2.y + S2.h + 3} x2={GROOT.x + GROOT.w / 2} y2={S1.y - 3} stroke={S2_PINK} strokeWidth={1.6} strokeLinecap="round" opacity={since('system1') ? 0.8 : 0.25} style={{ transition: 'opacity 500ms ease' }} />
           <path d={`M ${GROOT.x + GROOT.w / 2 - 4} ${S1.y - 8} l 4 5 l 4 -5`} fill="none" stroke={S2_PINK} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" opacity={since('system1') ? 0.8 : 0.25} style={{ transition: 'opacity 500ms ease' }} />
           <SubBlock x={S1.x} y={S1.y} w={S1.w} h={S1.h} title="SYSTEM 1" subtitle="ACTION HEAD · FAST" accent={S1_TEAL} active={since('system1')}>
-            {/* denoising strip: cream → saturated */}
             {Array.from({ length: 8 }, (_, i) => (
-              <rect key={i} x={S1.x + 12 + i * 14} y={S1.y + 44} width={10} height={10} rx={2} fill={S1_TEAL} opacity={since('system1') ? 0.2 + i * 0.1 : 0.15} style={{ transition: `opacity 400ms ease ${i * 50}ms` }} />
+              <rect key={i} x={S1.x + 12 + i * 14} y={S1.y + 42} width={10} height={10} rx={2} fill={S1_TEAL} opacity={since('system1') ? 0.2 + i * 0.1 : 0.15} style={{ transition: `opacity 400ms ease ${i * 50}ms` }} />
             ))}
           </SubBlock>
         </g>
 
-        {/* ================= the action chunk ================= */}
+        {/* ================= the action chunk, below GR00T ================= */}
         <g className="stage" style={focus('system1', 'hybrid', 'direct')}>
           <rect x={CHUNK.x} y={CHUNK.y} width={CHUNK.w} height={CHUNK.h} rx={10} fill="var(--diagram-surface)" stroke={S1_TEAL} strokeWidth={1.5} strokeDasharray="6 4" />
-          <text className="math-label" x={CHUNK.x + CHUNK.w / 2} y={CHUNK.y + 26} textAnchor="middle">
+          <text className="math-label" x={CHUNK.x + 52} y={CHUNK.y + 24} textAnchor="middle">
             a<tspan className="math-sub" dy={3}>t</tspan>
             <tspan dy={-3}> … </tspan>a<tspan className="math-sub" dy={3}>t+H</tspan>
           </text>
-          <text className="diagram-sublabel" x={CHUNK.x + CHUNK.w / 2} y={CHUNK.y + 44} textAnchor="middle">
+          <text className="diagram-sublabel" x={CHUNK.x + 12} y={CHUNK.y + 42}>
             upper-body actions
           </text>
         </g>
-        <FlowParticles x={GROOT.x + GROOT.w + 4} y={S1.y + 24} y2={CHUNK.y + 30} dx={CHUNK.x - GROOT.x - GROOT.w - 8} spreadStart={4} spreadEnd={4} count={4} duration={0.7} radius={2} shape="square" color={S1_TEAL} active={since('system1') && !staticMode} />
+        {/* System 1 → chunk */}
+        <FlowParticles x={GROOT.x + GROOT.w / 2 - 30} y={GROOT.y + GROOT.h + 4} dx={0.001} y2={CHUNK.y - 4} spreadStart={26} spreadEnd={26} count={3} duration={0.5} radius={2} shape="square" color={S1_TEAL} active={since('system1') && !staticMode} />
 
         {/* ================= the kinematic planner (lower body) ============ */}
         <g className="stage" style={focus('lower', 'hybrid')}>
@@ -231,55 +232,85 @@ export function VlaSplitDiagram({
           <text x={PLANNER.x + 12} y={PLANNER.y + 36} className="diagram-sublabel">
             lower body · stance &amp; steps
           </text>
-          {/* little gait ticks, tucked in the top-right corner */}
-          {[0, 1, 2].map((i) => (
-            <path key={i} d={`M ${PLANNER.x + PLANNER.w - 42 + i * 11} ${PLANNER.y + 16} q 3 -8 6 0`} fill="none" stroke={PLANNER_BLUE} strokeWidth={1.5} strokeLinecap="round" opacity={since('lower') ? 0.8 : 0.3} style={{ transition: 'opacity 500ms ease' }} />
-          ))}
         </g>
 
-        {/* ================= SONIC: hybrid encoder → latents ================ */}
-        <g className="stage" style={focus('hybrid', 'decode', 'direct')}>
-          <rect x={SONIC.x} y={SONIC.y} width={SONIC.w} height={SONIC.h} rx={13} fill="var(--diagram-surface)" stroke={since('hybrid') ? LATENT : 'var(--diagram-line)'} strokeWidth={1.5} style={{ transition: 'stroke 600ms ease' }} />
-          <text x={SONIC.x + 14} y={SONIC.y + 24} fontFamily="var(--diagram-font-label)" fontSize={13.5} fontWeight={700} fill="var(--diagram-ink)">
-            SONIC
-          </text>
-          <text x={SONIC.x + 78} y={SONIC.y + 24} fontFamily="var(--diagram-font-label)" fontSize={9.5} fontWeight={600} letterSpacing="0.06em" fill={LATENT}>
-            WHOLE-BODY CONTROL · 50 HZ
-          </text>
-          <g className="stage" style={{ opacity: directOn && !staticMode ? 0.3 : 1, transition: 'opacity 600ms ease' }}>
-            <text className="diagram-sublabel" x={HENC.x + 2} y={SONIC.y + 52}>
-              hybrid encoder
-            </text>
-            <EncoderModule x={HENC.x} y={HENC.y} length={HENC.len} inletRadius={21} outletRadius={9} shape="trapezoid" color={LATENT} active={since('hybrid') && !directOn} />
-          </g>
-          <LatentRack x={RACK.x} y={RACK.y} cells={7} cellSize={13} gap={3} color={LATENT} mode={since('hybrid') && !staticMode ? 'live' : staticMode ? 'hold' : 'idle'} pattern={[0, 2, 4, 6]} />
-        </g>
-
-        {/* ================= the teleop-format middleman ==================== */}
+        {/* ================= two parallel streams into the adapter ========== */}
+        {/* the teleop wrapper: VR headset + tracked joints, alive with flow */}
         <g className="stage" style={{ ...focus('hybrid', 'direct'), opacity: directOn && !staticMode ? 0.35 : (focus('hybrid', 'direct').opacity as number) }}>
-          <path d={`M ${CHUNK.x + CHUNK.w / 2} ${CHUNK.y + CHUNK.h + 2} C 530 196, 560 208, ${TELEOP.x - 50} ${TELEOP.y}`} fill="none" stroke="var(--diagram-muted)" strokeWidth={1.2} strokeDasharray="3 4" />
-          <path d={`M ${TELEOP.x + 12} ${TELEOP.y + 14} C 640 244, 620 300, ${HENC.x + 34} ${HENC.y - 24}`} fill="none" stroke="var(--diagram-muted)" strokeWidth={1.2} strokeDasharray="3 4" />
-          <rect x={TELEOP.x - 46} y={TELEOP.y - 13} width={92} height={26} rx={6} fill="var(--diagram-surface)" stroke="var(--diagram-muted)" strokeWidth={1.4} />
-          <text x={TELEOP.x} y={TELEOP.y + 3.5} textAnchor="middle" fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace" fontSize={10} fill="var(--diagram-muted)">
+          <rect x={TELEOP.x - TELEOP.w / 2} y={TELEOP.y - TELEOP.h / 2} width={TELEOP.w} height={TELEOP.h} rx={9} fill="var(--diagram-surface)" stroke="var(--diagram-muted)" strokeWidth={1.4} />
+          {/* VR headset */}
+          <rect x={TELEOP.x - 46} y={TELEOP.y - 17} width={34} height={17} rx={7} fill="none" stroke="var(--diagram-ink)" strokeWidth={1.6} />
+          <path d={`M ${TELEOP.x - 33} ${TELEOP.y} q 4 -4 8 0`} fill="none" stroke="var(--diagram-ink)" strokeWidth={1.5} />
+          <path d={`M ${TELEOP.x - 46} ${TELEOP.y - 11} q -7 0 -7 5`} fill="none" stroke="var(--diagram-ink)" strokeWidth={1.4} />
+          <path d={`M ${TELEOP.x - 12} ${TELEOP.y - 11} q 7 0 7 5`} fill="none" stroke="var(--diagram-ink)" strokeWidth={1.4} />
+          {/* tracked joints: a little arm that lights up with the data */}
+          <g stroke={S1_TEAL} strokeWidth={1.8} strokeLinecap="round">
+            <line x1={TELEOP.x + 8} y1={TELEOP.y - 12} x2={TELEOP.x + 24} y2={TELEOP.y - 2} />
+            <line x1={TELEOP.x + 24} y1={TELEOP.y - 2} x2={TELEOP.x + 42} y2={TELEOP.y - 10} />
+          </g>
+          {[0, 1, 2].map((i) => (
+            <circle
+              key={i}
+              className={`teleop-joint${teleopFlow ? ' flowing' : ''}`}
+              cx={TELEOP.x + 8 + i * 17}
+              cy={TELEOP.y - 12 + (i === 1 ? 10 : i === 2 ? 2 : 0)}
+              r={3.2}
+              fill={S1_TEAL}
+              opacity={0.45}
+              style={{ '--d': `${i * 0.22}s` } as CSSVarStyle}
+            />
+          ))}
+          <text x={TELEOP.x} y={TELEOP.y + 20} textAnchor="middle" fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace" fontSize={9.5} fill="var(--diagram-muted)">
             teleop.json
           </text>
         </g>
-        <line x1={TELEOP.x - 52} y1={TELEOP.y + 11} x2={TELEOP.x + 52} y2={TELEOP.y - 11} stroke={STATE_RED} strokeWidth={2.4} strokeLinecap="round" className="stage" style={{ opacity: directOn ? 1 : 0 }} />
+        <line x1={TELEOP.x - 58} y1={TELEOP.y + 22} x2={TELEOP.x + 58} y2={TELEOP.y - 22} stroke={STATE_RED} strokeWidth={2.4} strokeLinecap="round" className="stage" style={{ opacity: directOn && !staticMode ? 1 : 0 }} />
 
-        {/* upper body flow: chunk → teleop → hybrid encoder (classic path) */}
-        <FlowParticles x={CHUNK.x + CHUNK.w / 2 + 10} y={CHUNK.y + CHUNK.h + 6} y2={TELEOP.y - 6} dx={TELEOP.x - 60 - CHUNK.x - CHUNK.w / 2} spreadStart={3} spreadEnd={3} count={4} duration={0.7} radius={2} shape="square" color={S1_TEAL} active={since('hybrid') && !directOn && !staticMode} />
-        <FlowParticles x={TELEOP.x + 14} y={TELEOP.y + 16} y2={HENC.y - 20} dx={HENC.x + 30 - TELEOP.x - 14} spreadStart={3} spreadEnd={3} count={4} duration={0.7} radius={2} shape="square" color={S1_TEAL} active={since('hybrid') && !directOn && !staticMode} />
-        {/* lower body flow: planner → hybrid encoder */}
-        <FlowParticles x={PLANNER.x + PLANNER.w + 4} y={PLANNER.y + 24} y2={HENC.y + 6} dx={HENC.x - 6 - PLANNER.x - PLANNER.w} spreadStart={4} spreadEnd={3} count={4} duration={0.7} radius={2} color={PLANNER_BLUE} active={since('hybrid') && !staticMode} />
+        {/* upper stream: chunk → teleop → encoder (classic) */}
+        <FlowParticles x={CHUNK.x + CHUNK.w + 6} y={TOP_Y} dx={TELEOP.x - TELEOP.w / 2 - CHUNK.x - CHUNK.w - 12} spreadStart={3} spreadEnd={3} count={4} duration={0.65} radius={2} shape="square" color={S1_TEAL} active={teleopFlow} />
+        <FlowParticles x={TELEOP.x + TELEOP.w / 2 + 4} y={TOP_Y} y2={HENC.y - 18} dx={HENC.x - 4 - TELEOP.x - TELEOP.w / 2} spreadStart={3} spreadEnd={3} count={3} duration={0.55} radius={2} shape="square" color={S1_TEAL} active={teleopFlow} />
+        {/* the bypass: up and around the struck teleop card */}
+        <path
+          d={`M ${CHUNK.x + CHUNK.w + 6} ${TOP_Y - 4} Q ${TELEOP.x} ${TOP_Y - 78}, ${HENC.x + 4} ${HENC.y - 26}`}
+          fill="none"
+          stroke={S2_PINK}
+          strokeWidth={1.7}
+          strokeDasharray="5 4"
+          strokeLinecap="round"
+          className="stage"
+          style={{ opacity: directOn ? 0.9 : 0 }}
+        />
+        <FlowParticles x={CHUNK.x + CHUNK.w + 8} y={TOP_Y - 6} y2={TOP_Y - 62} dx={TELEOP.x - CHUNK.x - CHUNK.w - 12} spreadStart={3} spreadEnd={3} count={3} duration={0.5} radius={2} shape="square" color={S2_PINK} active={directOn && !staticMode} />
+        <FlowParticles x={TELEOP.x + 4} y={TOP_Y - 62} y2={HENC.y - 24} dx={HENC.x - TELEOP.x - 2} spreadStart={3} spreadEnd={3} count={3} duration={0.5} radius={2} shape="square" color={S2_PINK} active={directOn && !staticMode} />
 
-        {/* the direct latent write */}
-        <path d={`M ${CHUNK.x + CHUNK.w - 20} ${CHUNK.y + CHUNK.h + 2} C 640 210, 700 260, ${RACK.x + 56} ${RACK.y - 16}`} fill="none" stroke={S2_PINK} strokeWidth={1.7} strokeDasharray="5 4" strokeLinecap="round" className="stage" style={{ opacity: directOn ? 0.9 : 0 }} />
-        <FlowParticles x={CHUNK.x + CHUNK.w - 18} y={CHUNK.y + CHUNK.h + 6} y2={RACK.y - 18} dx={RACK.x + 52 - CHUNK.x - CHUNK.w + 14} spreadStart={4} spreadEnd={3} count={5} duration={0.8} radius={2} shape="square" color={S2_PINK} active={directOn && !staticMode} />
+        {/* lower stream: planner → encoder */}
+        <FlowParticles x={PLANNER.x + PLANNER.w + 6} y={BOT_Y} y2={HENC.y + 20} dx={HENC.x - 4 - PLANNER.x - PLANNER.w - 10} spreadStart={3} spreadEnd={3} count={5} duration={0.7} radius={2} color={PLANNER_BLUE} active={since('hybrid') && !staticMode} />
+
+        {/* ================= SONIC: adapter + vertical latents ============== */}
+        <g className="stage" style={focus('hybrid', 'decode', 'direct')}>
+          <rect x={SONIC.x} y={SONIC.y} width={SONIC.w} height={SONIC.h} rx={13} fill="var(--diagram-surface)" stroke={since('hybrid') ? LATENT : 'var(--diagram-line)'} strokeWidth={1.5} style={{ transition: 'stroke 600ms ease' }} />
+          <text x={SONIC.x + 16} y={SONIC.y + 26} fontFamily="var(--diagram-font-label)" fontSize={13.5} fontWeight={700} fill="var(--diagram-ink)">
+            SONIC
+          </text>
+          <text x={SONIC.x + 82} y={SONIC.y + 26} fontFamily="var(--diagram-font-label)" fontSize={9} fontWeight={600} letterSpacing="0.05em" fill={LATENT}>
+            WHOLE-BODY · 50 HZ
+          </text>
+          <LatentRack x={RACK.x} y={RACK.y} cells={7} cellSize={13} gap={3} color={LATENT} mode={since('hybrid') && !staticMode ? 'live' : staticMode ? 'hold' : 'idle'} pattern={[0, 2, 4, 6]} vertical />
+        </g>
+        {/* the Hybrid Encoder straddles SONIC's edge: an adapter for 2 streams */}
+        <g className="stage" style={focus('hybrid', 'direct')}>
+          <text className="diagram-sublabel" x={HENC.x + 2} y={HENC.y - 52}>
+            hybrid encoder
+          </text>
+          <EncoderModule x={HENC.x} y={HENC.y} length={HENC.len} inletRadius={42} outletRadius={11} shape="trapezoid" color={LATENT} active={since('hybrid')} />
+        </g>
+        {/* encoder → vertical rack */}
+        <FlowParticles x={HENC.x + HENC.len + 4} y={HENC.y} y2={RACK.y + 62} dx={RACK.x - 22 - HENC.x - HENC.len} spreadStart={4} spreadEnd={4} count={4} duration={0.6} radius={2} color={LATENT} active={since('hybrid') && !staticMode} />
 
         {/* ================= decode → the split body ======================== */}
-        <path d={`M ${SONIC.x + SONIC.w + 2} ${RACK.y} C 856 366, 866 380, ${ZONE.x + 14} ${ZONE.waist - 12}`} fill="none" stroke={ACTION} strokeWidth={1.5} strokeLinecap="round" className="stage" style={{ opacity: robotOn ? 0.6 : 0 }} />
-        <FlowParticles x={SONIC.x + SONIC.w + 4} y={RACK.y} y2={ZONE.waist - 14} dx={ZONE.x + 10 - SONIC.x - SONIC.w} spreadStart={3} spreadEnd={3} count={6} duration={0.55} color={ACTION} active={robotOn && !staticMode} />
-        <text className="math-label" x={SONIC.x + SONIC.w + 28} y={RACK.y - 14} textAnchor="middle" style={{ opacity: robotOn ? 1 : 0.35, transition: 'opacity 500ms ease' }}>
+        <path d={`M ${SONIC.x + SONIC.w + 2} ${RACK.y + 64} C 852 384, 858 392, ${ZONE.x + 16} ${ZONE.waist - 10}`} fill="none" stroke={ACTION} strokeWidth={1.5} strokeLinecap="round" className="stage" style={{ opacity: robotOn ? 0.6 : 0 }} />
+        <FlowParticles x={SONIC.x + SONIC.w + 4} y={RACK.y + 62} y2={ZONE.waist - 12} dx={ZONE.x + 12 - SONIC.x - SONIC.w} spreadStart={3} spreadEnd={3} count={6} duration={0.55} color={ACTION} active={robotOn && !staticMode} />
+        <text className="math-label" x={SONIC.x + SONIC.w + 22} y={RACK.y + 40} textAnchor="middle" style={{ opacity: robotOn ? 1 : 0.35, transition: 'opacity 500ms ease' }}>
           D<tspan className="math-sub" dy={3}>c</tspan>
         </text>
 
@@ -287,14 +318,14 @@ export function VlaSplitDiagram({
           <rect x={ZONE.x} y={ZONE.top} width={ZONE.w} height={ZONE.waist - ZONE.top} rx={9} fill={S2_PINK} fillOpacity={robotOn ? 0.08 : 0.02} stroke="none" style={{ transition: 'fill-opacity 600ms ease' }} />
           <rect x={ZONE.x} y={ZONE.waist} width={ZONE.w} height={ZONE.bottom - ZONE.waist} rx={9} fill={PLANNER_BLUE} fillOpacity={robotOn ? 0.1 : 0.02} stroke="none" style={{ transition: 'fill-opacity 600ms ease' }} />
           <line x1={ZONE.x - 6} y1={ZONE.waist} x2={ZONE.x + ZONE.w + 6} y2={ZONE.waist} stroke="var(--diagram-muted)" strokeWidth={1.2} strokeDasharray="4 4" opacity={0.8} />
-          <text className="diagram-sublabel" x={ZONE.x - 8} y={ZONE.top + 30} textAnchor="end" style={{ fill: S2_PINK }}>
+          <text className="diagram-sublabel" x={ZONE.x - 8} y={ZONE.top + 34} textAnchor="end" style={{ fill: S2_PINK }}>
             task
           </text>
-          <text className="diagram-sublabel" x={ZONE.x - 8} y={ZONE.waist + 22} textAnchor="end" style={{ fill: PLANNER_BLUE }}>
+          <text className="diagram-sublabel" x={ZONE.x - 8} y={ZONE.waist + 26} textAnchor="end" style={{ fill: PLANNER_BLUE }}>
             balance
           </text>
         </g>
-        <line x1={846} y1={ROBOT.ground} x2={952} y2={ROBOT.ground} stroke="var(--diagram-line)" strokeWidth={1.5} strokeLinecap="round" />
+        <line x1={840} y1={ROBOT.ground} x2={954} y2={ROBOT.ground} stroke="var(--diagram-line)" strokeWidth={1.5} strokeLinecap="round" />
         <g transform={`translate(${ROBOT.x} ${ROBOT.ground}) scale(${ROBOT.scale})`}>
           <RobotDancer dancing={!staticMode && robotOn} move={robotMove} active={robotOn} accent={ACTION} />
         </g>
@@ -302,7 +333,7 @@ export function VlaSplitDiagram({
         {/* ================= labels ========================================== */}
         <StageLabel x={IN_X} y={LABEL_Y} text="3 inputs" active={at('inputs')} accent={VISION_TOKEN} />
         <StageLabel x={GROOT.x + GROOT.w / 2} y={LABEL_Y} text="two systems" active={at('system2') || at('system1')} accent={S2_PINK} />
-        <StageLabel x={SONIC.x + SONIC.w / 2 - 30} y={LABEL_Y} text="one latent space" active={at('hybrid') || at('direct')} accent={LATENT} />
+        <StageLabel x={SONIC.x + SONIC.w / 2} y={LABEL_Y} text="one latent space" active={at('hybrid') || at('direct')} accent={LATENT} />
         <StageLabel x={ROBOT.x - 4} y={LABEL_Y} text="one body" active={at('decode') || at('act')} accent={ACTION} />
       </DiagramFrame>
     </div>

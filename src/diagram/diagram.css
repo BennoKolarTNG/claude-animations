@@ -297,6 +297,21 @@
   50%      { opacity: 0.5; }
 }
 
+/* Teleop-card joints: light up and jiggle while data flows through. */
+.teleop-joint {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.teleop-joint.flowing {
+  animation: jointWiggle 900ms ease-in-out var(--d, 0s) infinite;
+}
+
+@keyframes jointWiggle {
+  0%, 100% { opacity: 0.45; transform: translateY(0); }
+  50%      { opacity: 1; transform: translateY(-2.5px); }
+}
+
 /* Tap ripple: expanding rings where a device gets clicked. */
 .click-ring {
   transform-box: fill-box;

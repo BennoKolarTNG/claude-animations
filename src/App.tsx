@@ -4,6 +4,7 @@ import { SonicArchitectureDiagram } from './diagram/SonicArchitectureDiagram'
 import { MotionExtractionDiagram } from './diagram/MotionExtractionDiagram'
 import { DeploymentLoopDiagram } from './diagram/DeploymentLoopDiagram'
 import { VlaSplitDiagram } from './diagram/VlaSplitDiagram'
+import { VlaEvolutionDiagram } from './diagram/VlaEvolutionDiagram'
 import { redTheme } from './diagram/diagramTokens'
 
 export default function App() {
@@ -103,6 +104,12 @@ export default function App() {
       </p>
 
       <VlaSplitDiagram className="essay-figure" />
+
+      <p>
+        Variant B for comparison — the same story as a before/after:
+      </p>
+
+      <VlaEvolutionDiagram className="essay-figure" />
     </main>
   )
 }

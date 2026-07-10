@@ -20,6 +20,8 @@ interface LatentRackProps {
   mode: LatentRackMode
   /** Indices of the cells this input activates strongly. */
   pattern?: number[]
+  /** Stack the cells top-to-bottom instead of left-to-right. */
+  vertical?: boolean
 }
 
 /**
@@ -37,17 +39,18 @@ export function LatentRack({
   color = 'var(--diagram-accent-latent)',
   mode,
   pattern = [],
+  vertical = false,
 }: LatentRackProps) {
   const rowWidth = cells * (cellSize + gap) - gap
   const pad = 10
-  const boardW = rowWidth + pad * 2
-  const boardH = cellSize + pad * 2 - 4
+  const boardW = vertical ? cellSize + pad * 2 - 4 : rowWidth + pad * 2
+  const boardH = vertical ? rowWidth + pad * 2 : cellSize + pad * 2 - 4
 
   return (
     <g className={`latent-rack${mode === 'live' ? ' live' : ''}`} aria-hidden>
       <rect
-        x={x}
-        y={y - boardH / 2}
+        x={vertical ? x - boardW / 2 : x}
+        y={vertical ? y : y - boardH / 2}
         width={boardW}
         height={boardH}
         rx={9}
@@ -82,8 +85,8 @@ export function LatentRack({
           <rect
             key={i}
             className="latent-cell"
-            x={x + pad + i * (cellSize + gap)}
-            y={y - cellSize / 2}
+            x={vertical ? x - cellSize / 2 : x + pad + i * (cellSize + gap)}
+            y={vertical ? y + pad + i * (cellSize + gap) : y - cellSize / 2}
             width={cellSize}
             height={cellSize}
             rx={3.5}
