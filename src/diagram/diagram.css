@@ -1,0 +1,620 @@
+/* ---------------------------------------------------------------------------
+   Editorial diagram system — frame, labels, and all animation keyframes.
+   Components toggle classes / inline transforms; motion definitions live here.
+--------------------------------------------------------------------------- */
+
+.diagram-frame {
+  background: var(--diagram-bg);
+  border: 1px solid var(--diagram-line);
+  border-radius: 20px;
+  padding: 28px 28px 20px;
+  margin: 0;
+}
+
+.diagram-frame svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.diagram-frame figcaption {
+  margin-top: 14px;
+  min-height: 1.6em;
+  font-family: var(--diagram-font-caption);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--diagram-muted);
+  text-align: center;
+}
+
+.diagram-caption-line {
+  display: inline-block;
+  animation: captionIn 600ms var(--diagram-ease) both;
+}
+
+@keyframes captionIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* --- shared -------------------------------------------------------------- */
+
+.diagram-frame * {
+  vector-effect: non-scaling-stroke;
+}
+
+.stage {
+  transition:
+    opacity 700ms var(--diagram-ease),
+    transform 900ms var(--diagram-ease);
+}
+
+.stage-pop {
+  transition:
+    opacity 600ms var(--diagram-ease),
+    transform 800ms var(--diagram-ease-pop);
+}
+
+.diagram-label {
+  font-family: var(--diagram-font-label);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  fill: var(--diagram-muted);
+  opacity: 0.7;
+  transition: fill 500ms ease, opacity 500ms ease;
+}
+
+.diagram-label.active {
+  fill: var(--diagram-ink);
+  opacity: 1;
+}
+
+.diagram-label-dot {
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.diagram-label-dot.active {
+  opacity: 1;
+}
+
+.diagram-sublabel {
+  font-family: var(--diagram-font-label);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  fill: var(--diagram-muted);
+}
+
+/* --- flow particles ------------------------------------------------------ */
+
+.flow-dot {
+  opacity: 0;
+}
+
+.flow-dot.active {
+  animation: flowDot var(--dur) linear var(--d) infinite;
+}
+
+@keyframes flowDot {
+  0%   { transform: translate(var(--x0), var(--y0)); opacity: 0; }
+  12%  { opacity: 0.9; }
+  82%  { opacity: 0.9; }
+  100% { transform: translate(var(--x1), var(--y1)); opacity: 0; }
+}
+
+/* --- neural network ------------------------------------------------------ */
+
+.nn-edge {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition:
+    stroke-dashoffset 1100ms var(--diagram-ease) var(--d),
+    stroke 800ms ease,
+    stroke-opacity 800ms ease;
+}
+
+.nn.drawn .nn-edge {
+  stroke-dashoffset: 0;
+}
+
+.nn-node {
+  transition: fill 400ms ease;
+}
+
+.nn.pulsing .nn-node {
+  animation: nodePulse var(--pulse-dur, 2.4s) ease-in-out var(--d) infinite;
+}
+
+@keyframes nodePulse {
+  0%, 100% { fill: var(--diagram-surface); }
+  18%      { fill: var(--pulse-color); }
+  36%      { fill: var(--diagram-surface); }
+}
+
+.nn-halo {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.nn.pulsing .nn-halo {
+  animation: haloPulse var(--pulse-dur, 2.4s) ease-in-out var(--d) infinite;
+}
+
+@keyframes haloPulse {
+  0%, 100% { opacity: 0; transform: scale(0.6); }
+  18%      { opacity: 0.35; transform: scale(1); }
+  40%      { opacity: 0; transform: scale(1.25); }
+}
+
+/* --- training loop (two rotating arrows) --------------------------------- */
+
+.training-loop-rotor {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.training-loop.spinning .training-loop-rotor {
+  animation: loopSpin 2.6s linear infinite;
+}
+
+@keyframes loopSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.training-loop-core {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.training-loop.spinning .training-loop-core {
+  animation: corePulse 1.3s ease-in-out infinite;
+}
+
+@keyframes corePulse {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50%      { transform: scale(1.35); opacity: 1; }
+}
+
+/* --- shuttle dot (policy travelling into the output pipe) ---------------- */
+
+.shuttle-dot {
+  opacity: 0;
+}
+
+.shuttle-dot.travelling {
+  animation: shuttle 900ms var(--diagram-ease) both;
+}
+
+@keyframes shuttle {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translate(var(--dx), 0); opacity: 0; }
+}
+
+/* --- motion cards --------------------------------------------------------- */
+
+.motion-card {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    opacity 600ms var(--diagram-ease),
+    transform 600ms var(--diagram-ease);
+}
+
+.motion-card.active {
+  transform: scale(1.12);
+}
+
+.motion-card-halo {
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.motion-card.active .motion-card-halo {
+  opacity: 0.3;
+}
+
+/* --- latent rack ------------------------------------------------------------ */
+
+.latent-cell {
+  transition: opacity 600ms ease;
+}
+
+/* While a motion streams through, every cell glows smoothly up and down.
+   The per-cell delay makes the row light up left→right on entry; the
+   slightly different per-cell durations let the cycles drift apart. */
+.latent-rack.live .latent-cell {
+  animation: cellGlow var(--gdur, 1.4s) ease-in-out var(--d2, 0s) infinite alternate;
+}
+
+@keyframes cellGlow {
+  from { opacity: var(--lo, 0.15); }
+  to   { opacity: var(--hi, 0.9); }
+}
+
+/* --- math annotations (LaTeX-flavored labels on modules) -------------------- */
+
+.math-label {
+  font-family: 'STIX Two Math', 'Cambria Math', 'Times New Roman', Georgia, serif;
+  font-style: italic;
+  font-size: 16px;
+  fill: var(--diagram-ink);
+  transition: opacity 600ms ease;
+}
+
+.math-label .math-sub {
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+/* --- wind gust ------------------------------------------------------------ */
+
+.wind-line {
+  opacity: 0;
+}
+
+/* One 2.7s cycle shared with the robot's stumble keyframes: the gust
+   sweeps through in the first third (impact), then everything settles
+   while the robot recovers. */
+.wind.active .wind-line {
+  animation: windSweep 2.7s ease-out var(--d) 1 both;
+}
+
+@keyframes windSweep {
+  0%   { transform: translateX(56px); opacity: 0; }
+  5%   { opacity: 0.9; }
+  22%  { transform: translateX(-42px); opacity: 0.7; }
+  36%  { transform: translateX(-92px); opacity: 0; }
+  100% { transform: translateX(-92px); opacity: 0; }
+}
+
+/* --- robot dancer --------------------------------------------------------- */
+
+/* NOTE: `transition` is a shorthand — this higher-specificity rule would
+   otherwise wipe out the transform transition that the pose glides rely
+   on, so transform is declared here alongside the color fades. The glide
+   uses a symmetric ease-in-out: a strong ease-out front-loads the motion
+   and leaves the robot visibly waiting at the target pose. */
+.robot .robot-limb,
+.robot .robot-part {
+  transition:
+    stroke 600ms ease,
+    fill 600ms ease,
+    transform 420ms cubic-bezier(0.45, 0.05, 0.35, 1);
+}
+
+/* Measurement state: RobotDancer applies a move class to a hidden CLONE
+   with animations paused to read the move's first-frame pose. Measuring
+   on a clone keeps the live limbs' transition baselines untouched — a
+   forced recalc on the real elements would swallow the rest→pose delta
+   and kill the entry glide. */
+.robot.measuring .robot-sway,
+.robot.measuring .robot-bounce,
+.robot.measuring .robot-head,
+.robot.measuring .robot-arm,
+.robot.measuring .robot-leg,
+.robot.measuring .robot-armside {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+
+/* RobotDancer's pose glides: limbs transition between frozen dance
+   poses, measured entry poses, and rest — these transitions do the
+   actual interpolation. Keep duration/easing in sync with the
+   robot-limb rule above and GLIDE_FALLBACK_MS in RobotDancer. */
+.robot-sway,
+.robot-bounce,
+.robot-head,
+.robot-arm,
+.robot-leg,
+.robot-armside {
+  transition: transform 420ms cubic-bezier(0.45, 0.05, 0.35, 1);
+}
+
+.robot-sway,
+.robot-bounce,
+.robot-head,
+.robot-arm,
+.robot-leg {
+  transform-box: fill-box;
+}
+
+.robot-sway   { transform-origin: 50% 100%; }
+.robot-bounce { transform-origin: 50% 100%; }
+.robot-head   { transform-origin: 50% 90%; }
+.robot-arm-left  { transform-origin: 50% 8%; }
+.robot-arm-right { transform-origin: 50% 8%; }
+.robot-leg-left,
+.robot-leg-right { transform-origin: 50% 0; }
+
+/* Shared body language while any move is playing. */
+@keyframes robotSway {
+  0%, 100% { transform: rotate(-4deg); }
+  50%      { transform: rotate(4deg); }
+}
+
+@keyframes robotBounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+@keyframes robotHead {
+  0%, 100% { transform: rotate(7deg); }
+  50%      { transform: rotate(-7deg); }
+}
+
+@keyframes chestPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+/* Disco: alternating raised arms. */
+.robot.move-disco .robot-sway   { animation: robotSway 1.24s ease-in-out infinite; }
+.robot.move-disco .robot-bounce { animation: robotBounce 620ms ease-in-out infinite; }
+.robot.move-disco .robot-head   { animation: robotHead 1.24s ease-in-out infinite; }
+.robot.move-disco .robot-chest  { animation: chestPulse 620ms ease-in-out infinite; }
+.robot.move-disco .robot-arm-left  { animation: discoArmLeft 1.24s var(--diagram-ease-swing) infinite; }
+.robot.move-disco .robot-arm-right { animation: discoArmRight 1.24s var(--diagram-ease-swing) infinite; }
+
+@keyframes discoArmLeft {
+  0%, 100% { transform: rotate(-155deg); }
+  50%      { transform: rotate(-15deg); }
+}
+
+@keyframes discoArmRight {
+  0%, 100% { transform: rotate(15deg); }
+  50%      { transform: rotate(155deg); }
+}
+
+/* Kick: legs fly left and right; arms flare a little for balance. */
+.robot.move-kick .robot-sway   { animation: robotSway 1.24s ease-in-out infinite; }
+.robot.move-kick .robot-bounce { animation: robotBounce 620ms ease-in-out infinite; }
+.robot.move-kick .robot-head   { animation: robotHead 1.24s ease-in-out infinite; }
+.robot.move-kick .robot-chest  { animation: chestPulse 620ms ease-in-out infinite; }
+.robot.move-kick .robot-leg-left  { animation: kickLegLeft 1.24s var(--diagram-ease-swing) infinite; }
+.robot.move-kick .robot-leg-right { animation: kickLegRight 1.24s var(--diagram-ease-swing) infinite; }
+.robot.move-kick .robot-arm-left  { animation: kickBalanceLeft 1.24s ease-in-out infinite; }
+.robot.move-kick .robot-arm-right { animation: kickBalanceRight 1.24s ease-in-out infinite; }
+
+/* Down-pointing limbs: positive rotation swings the foot to the left. */
+@keyframes kickLegLeft {
+  0%, 45%, 100% { transform: rotate(0deg); }
+  22%           { transform: rotate(48deg); }
+}
+
+@keyframes kickLegRight {
+  0%, 55%, 100% { transform: rotate(0deg); }
+  76%           { transform: rotate(-48deg); }
+}
+
+@keyframes kickBalanceLeft {
+  0%, 45%, 100% { transform: rotate(14deg); }
+  70%           { transform: rotate(42deg); }
+}
+
+@keyframes kickBalanceRight {
+  0%, 55%, 100% { transform: rotate(-14deg); }
+  20%           { transform: rotate(-42deg); }
+}
+
+/* Wiggle: standing slightly sideways, arms pumping up and down. */
+.robot.move-wiggle .robot-sway   { animation: wiggleSway 1.3s ease-in-out infinite; }
+.robot.move-wiggle .robot-bounce { animation: robotBounce 650ms ease-in-out infinite; }
+.robot.move-wiggle .robot-head   { animation: robotHead 1.3s ease-in-out infinite; }
+.robot.move-wiggle .robot-chest  { animation: chestPulse 650ms ease-in-out infinite; }
+.robot.move-wiggle .robot-arm-left  { animation: wiggleArmLeft 650ms ease-in-out infinite; }
+.robot.move-wiggle .robot-arm-right { animation: wiggleArmRight 650ms ease-in-out infinite; }
+
+@keyframes wiggleSway {
+  0%, 100% { transform: rotate(-10deg); }
+  50%      { transform: rotate(-6deg); }
+}
+
+@keyframes wiggleArmLeft {
+  0%, 100% { transform: rotate(55deg); }
+  50%      { transform: rotate(118deg); }
+}
+
+@keyframes wiggleArmRight {
+  0%, 100% { transform: rotate(-118deg); }
+  50%      { transform: rotate(-55deg); }
+}
+
+/* Walk: stepping in place, arms swinging opposite the legs. */
+.robot.move-walk .robot-bounce { animation: robotBounce 420ms ease-in-out infinite; }
+.robot.move-walk .robot-chest  { animation: chestPulse 840ms ease-in-out infinite; }
+.robot.move-walk .robot-leg-left  { animation: walkLegLeft 840ms ease-in-out infinite; }
+.robot.move-walk .robot-leg-right { animation: walkLegRight 840ms ease-in-out infinite; }
+.robot.move-walk .robot-arm-left  { animation: walkLegRight 840ms ease-in-out infinite; }
+.robot.move-walk .robot-arm-right { animation: walkLegLeft 840ms ease-in-out infinite; }
+
+@keyframes walkLegLeft {
+  0%, 100% { transform: rotate(24deg); }
+  50%      { transform: rotate(-24deg); }
+}
+
+@keyframes walkLegRight {
+  0%, 100% { transform: rotate(-24deg); }
+  50%      { transform: rotate(24deg); }
+}
+
+/* Side-lean wiggle ("ripple"): both arms point to the LEFT side — the
+   left arm extended outward, the right arm sweeping ACROSS the body
+   (both render in front of the torso for this move) — while the body
+   leans and rocks. The crossing arm runs half a beat behind the
+   outstretched one, so the sweep ripples through the arms.
+
+   Halfway through, the HANDS swap sides (the robot doesn't turn): each
+   arm's mirror wrapper flips around its own shoulder, so the extended
+   arm becomes the crossing arm and the wiggle continues mirrored. */
+.robot-armside {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+.robot.move-sidewiggle .robot-armside {
+  animation: armSideFlip 10s ease-in-out infinite;
+}
+
+@keyframes armSideFlip {
+  0%, 44%   { transform: scaleX(1); }
+  52%, 94%  { transform: scaleX(-1); }
+  100%      { transform: scaleX(1); }
+}
+
+.robot.move-sidewiggle .robot-sway   { animation: slwRock10 10s ease-in-out infinite; }
+.robot.move-sidewiggle .robot-bounce { animation: robotBounce 500ms ease-in-out infinite; }
+.robot.move-sidewiggle .robot-chest  { animation: chestPulse 1s ease-in-out infinite; }
+.robot.move-sidewiggle .robot-arm-left  { animation: slwArmOut 1s ease-in-out infinite; }
+.robot.move-sidewiggle .robot-arm-right { animation: slwArmCross 1s ease-in-out -500ms infinite; }
+
+/* Body lean mirrors along with the arms: left-leaning rocks for the
+   first half, a swing across the middle, right-leaning for the second. */
+@keyframes slwRock10 {
+  0%   { transform: rotate(-12deg); }
+  5%   { transform: rotate(-4deg); }
+  10%  { transform: rotate(-12deg); }
+  15%  { transform: rotate(-4deg); }
+  20%  { transform: rotate(-12deg); }
+  25%  { transform: rotate(-4deg); }
+  30%  { transform: rotate(-12deg); }
+  35%  { transform: rotate(-4deg); }
+  40%  { transform: rotate(-12deg); }
+  46%  { transform: rotate(-5deg); }
+  54%  { transform: rotate(5deg); }
+  60%  { transform: rotate(12deg); }
+  65%  { transform: rotate(4deg); }
+  70%  { transform: rotate(12deg); }
+  75%  { transform: rotate(4deg); }
+  80%  { transform: rotate(12deg); }
+  85%  { transform: rotate(4deg); }
+  90%  { transform: rotate(12deg); }
+  96%  { transform: rotate(5deg); }
+  100% { transform: rotate(-12deg); }
+}
+
+/* Left arm: extended outward to the side, sweeping low↔high. */
+@keyframes slwArmOut {
+  0%, 100% { transform: rotate(50deg); }
+  50%      { transform: rotate(112deg); }
+}
+
+/* Right arm: laid across the body, tip pointing the same way. */
+@keyframes slwArmCross {
+  0%, 100% { transform: rotate(62deg); }
+  50%      { transform: rotate(124deg); }
+}
+
+/* Wave: one arm raised, waving side to side. */
+.robot.move-wave .robot-bounce { animation: robotBounce 640ms ease-in-out infinite; }
+.robot.move-wave .robot-head   { animation: robotHead 1.28s ease-in-out infinite; }
+.robot.move-wave .robot-chest  { animation: chestPulse 640ms ease-in-out infinite; }
+.robot.move-wave .robot-arm-left  { transform: rotate(14deg); }
+.robot.move-wave .robot-arm-right { animation: waveArm 600ms ease-in-out infinite; }
+
+@keyframes waveArm {
+  0%, 100% { transform: rotate(-136deg); }
+  50%      { transform: rotate(-172deg); }
+}
+
+/* Jump: the whole body hops; legs tuck, arms throw upward at the apex. */
+.robot.move-jump .robot-bounce { animation: jumpHop 900ms ease-in-out infinite; }
+.robot.move-jump .robot-chest  { animation: chestPulse 900ms ease-in-out infinite; }
+.robot.move-jump .robot-leg-left  { animation: jumpLegLeft 900ms ease-in-out infinite; }
+.robot.move-jump .robot-leg-right { animation: jumpLegRight 900ms ease-in-out infinite; }
+.robot.move-jump .robot-arm-left  { animation: jumpArmLeft 900ms ease-in-out infinite; }
+.robot.move-jump .robot-arm-right { animation: jumpArmRight 900ms ease-in-out infinite; }
+
+@keyframes jumpHop {
+  0%, 12%, 88%, 100% { transform: translateY(0); }
+  50%                { transform: translateY(-13px); }
+}
+
+/* Legs live outside the bounce group, so they carry the same hop. */
+@keyframes jumpLegLeft {
+  0%, 12%, 88%, 100% { transform: translateY(0) rotate(0deg); }
+  50%                { transform: translateY(-13px) rotate(26deg); }
+}
+
+@keyframes jumpLegRight {
+  0%, 12%, 88%, 100% { transform: translateY(0) rotate(0deg); }
+  50%                { transform: translateY(-13px) rotate(-26deg); }
+}
+
+@keyframes jumpArmLeft {
+  0%, 12%, 88%, 100% { transform: rotate(18deg); }
+  50%                { transform: rotate(145deg); }
+}
+
+@keyframes jumpArmRight {
+  0%, 12%, 88%, 100% { transform: rotate(-18deg); }
+  50%                { transform: rotate(-145deg); }
+}
+
+/* Stumble: a gust hits from the right; lean, flail, recover.
+   Defined after the move-* rules so it wins while both classes are set. */
+.robot.stumbling .robot-sway {
+  animation: stumbleSway 2.7s var(--diagram-ease) 1 both;
+}
+
+.robot.stumbling .robot-bounce,
+.robot.stumbling .robot-head {
+  animation: none;
+}
+
+.robot.stumbling .robot-arm-left {
+  animation: flailLeft 2.7s ease-in-out 1 both;
+}
+
+.robot.stumbling .robot-arm-right {
+  animation: flailRight 2.7s ease-in-out 1 both;
+}
+
+@keyframes stumbleSway {
+  0%   { transform: rotate(0deg); }
+  10%  { transform: rotate(-17deg) translateX(-5px); }
+  26%  { transform: rotate(-11deg) translateX(-3px); }
+  42%  { transform: rotate(6deg); }
+  58%  { transform: rotate(-3deg); }
+  74%  { transform: rotate(1.5deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes flailLeft {
+  0%   { transform: rotate(20deg); }
+  10%  { transform: rotate(130deg); }
+  22%  { transform: rotate(40deg); }
+  34%  { transform: rotate(120deg); }
+  48%  { transform: rotate(55deg); }
+  66%  { transform: rotate(20deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes flailRight {
+  0%   { transform: rotate(-20deg); }
+  10%  { transform: rotate(-125deg); }
+  22%  { transform: rotate(-35deg); }
+  34%  { transform: rotate(-115deg); }
+  48%  { transform: rotate(-50deg); }
+  66%  { transform: rotate(-20deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* --- reduced motion ------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .diagram-frame *,
+  .diagram-frame *::before,
+  .diagram-frame *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -1,0 +1,73 @@
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #fdfbf6;
+  color: #1b1a17;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia,
+    'Times New Roman', serif;
+  font-size: 18px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+.essay {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 72px 24px 120px;
+}
+
+.essay-kicker {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8c877c;
+  margin: 0 0 12px;
+}
+
+.essay h1 {
+  font-size: 44px;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 24px;
+}
+
+.essay-lede {
+  font-size: 21px;
+  line-height: 1.55;
+  color: #45423b;
+}
+
+.essay p {
+  margin: 0 0 24px;
+}
+
+.essay-figure {
+  margin: 40px -40px;
+}
+
+@media (max-width: 860px) {
+  .essay-figure {
+    margin: 32px 0;
+  }
+}
+
+/* Embed mode: nothing but the diagram card on a transparent page, so
+   the figure sits cleanly on whatever background the host page has. */
+.embed-mode,
+.embed-mode body {
+  background: transparent;
+}
+
+.embed-page {
+  padding: 4px;
+}
