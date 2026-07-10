@@ -255,6 +255,75 @@
   letter-spacing: 0.02em;
 }
 
+/* --- keypoint figures ------------------------------------------------------- */
+
+/* Keypoints/bones pop in with a per-element stagger when detected.
+   The `to` keyframe omits opacity so ghosted elements settle at their
+   own (reduced) opacity rather than being forced to 1. */
+.kp-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: kpPop 400ms var(--diagram-ease-pop) var(--d, 0s) both;
+}
+
+@keyframes kpPop {
+  from { opacity: 0; transform: scale(0.3); }
+  to   { transform: scale(1); }
+}
+
+/* GEM-style red playhead sweeping once across the motion timeline. */
+.playhead {
+  opacity: 0;
+}
+
+.playhead.sweeping {
+  animation: playheadSweep 1.9s linear both;
+}
+
+@keyframes playheadSweep {
+  0%   { transform: translateX(0); opacity: 0; }
+  6%   { opacity: 1; }
+  94%  { opacity: 1; }
+  100% { transform: translateX(var(--sweep, 380px)); opacity: 0; }
+}
+
+/* Uncertain ghost poses breathe faintly until the model commits. */
+.ghost-flicker {
+  animation: ghostFlicker 1.6s ease-in-out var(--d, 0s) infinite;
+}
+
+@keyframes ghostFlicker {
+  0%, 100% { opacity: 0.2; }
+  50%      { opacity: 0.5; }
+}
+
+/* --- wifi waves -------------------------------------------------------------- */
+
+.wifi .wifi-arc,
+.wifi .wifi-dot {
+  opacity: 0.25;
+  transition: opacity 500ms ease;
+}
+
+.wifi.active .wifi-arc {
+  animation: wifiPulse 1.5s ease-out var(--d, 0s) infinite;
+}
+
+.wifi.active .wifi-dot {
+  opacity: 1;
+}
+
+@keyframes wifiPulse {
+  0%   { opacity: 0.15; }
+  30%  { opacity: 1; }
+  100% { opacity: 0.15; }
+}
+
+/* Selected motion tile pulses while its motion streams. */
+.laptop-tile-playing {
+  animation: chestPulse 1s ease-in-out infinite;
+}
+
 /* --- wind gust ------------------------------------------------------------ */
 
 .wind-line {
@@ -557,6 +626,49 @@
 @keyframes jumpArmRight {
   0%, 12%, 88%, 100% { transform: rotate(-18deg); }
   50%                { transform: rotate(-145deg); }
+}
+
+/* Balance: lower body only — slow weight shifts, everything else calm.
+   The System 1 controller at work. */
+.robot.move-balance .robot-sway   { animation: balanceSway 2.4s ease-in-out infinite; }
+.robot.move-balance .robot-leg-left  { animation: balanceLegLeft 2.4s ease-in-out infinite; }
+.robot.move-balance .robot-leg-right { animation: balanceLegRight 2.4s ease-in-out infinite; }
+
+@keyframes balanceSway {
+  0%, 100% { transform: rotate(-2.5deg); }
+  50%      { transform: rotate(2.5deg); }
+}
+
+@keyframes balanceLegLeft {
+  0%, 100% { transform: rotate(6deg); }
+  50%      { transform: rotate(-3deg); }
+}
+
+@keyframes balanceLegRight {
+  0%, 100% { transform: rotate(3deg); }
+  50%      { transform: rotate(-6deg); }
+}
+
+/* Embodied: the same balancing legs, plus arms working a task —
+   reaching and adjusting at System 2 pace. */
+.robot.move-embodied .robot-sway   { animation: balanceSway 2.4s ease-in-out infinite; }
+.robot.move-embodied .robot-leg-left  { animation: balanceLegLeft 2.4s ease-in-out infinite; }
+.robot.move-embodied .robot-leg-right { animation: balanceLegRight 2.4s ease-in-out infinite; }
+.robot.move-embodied .robot-head   { animation: robotHead 2.4s ease-in-out infinite; }
+.robot.move-embodied .robot-chest  { animation: chestPulse 1.2s ease-in-out infinite; }
+.robot.move-embodied .robot-arm-left  { animation: taskArmLeft 2.4s ease-in-out infinite; }
+.robot.move-embodied .robot-arm-right { animation: taskArmRight 2.4s ease-in-out infinite; }
+
+@keyframes taskArmLeft {
+  0%, 100% { transform: rotate(38deg); }
+  30%      { transform: rotate(78deg); }
+  60%      { transform: rotate(52deg); }
+}
+
+@keyframes taskArmRight {
+  0%, 100% { transform: rotate(-72deg); }
+  40%      { transform: rotate(-40deg); }
+  75%      { transform: rotate(-80deg); }
 }
 
 /* Stumble: a gust hits from the right; lean, flail, recover.

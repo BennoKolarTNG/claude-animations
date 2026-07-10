@@ -16,6 +16,8 @@ interface FlowParticlesProps {
   /** Seconds for one particle to cross. */
   duration?: number
   radius?: number
+  /** 'square' renders token-style tiles instead of dots. */
+  shape?: 'dot' | 'square'
   active: boolean
 }
 
@@ -34,6 +36,7 @@ export function FlowParticles({
   color = 'var(--diagram-accent-input)',
   duration = 1.7,
   radius = 2.4,
+  shape = 'dot',
   active,
 }: FlowParticlesProps) {
   const dots = Array.from({ length: count }, (_, i) => {
@@ -46,16 +49,21 @@ export function FlowParticles({
       '--dur': `${duration}s`,
       '--d': `${-((i * 0.37) % 1) * duration}s`,
     }
-    return (
-      <circle
+    const cls = `flow-dot${active ? ' active' : ''}`
+    return shape === 'square' ? (
+      <rect
         key={i}
-        className={`flow-dot${active ? ' active' : ''}`}
-        cx={0}
-        cy={0}
-        r={radius}
+        className={cls}
+        x={-radius * 1.3}
+        y={-radius * 1.3}
+        width={radius * 2.6}
+        height={radius * 2.6}
+        rx={1.2}
         fill={color}
         style={style}
       />
+    ) : (
+      <circle key={i} className={cls} cx={0} cy={0} r={radius} fill={color} style={style} />
     )
   })
 

@@ -1,6 +1,9 @@
 import { EmbodiedAIPipelineDiagram } from './diagram/EmbodiedAIPipelineDiagram'
 import { GeneralistMotionPolicyDiagram } from './diagram/GeneralistMotionPolicyDiagram'
 import { SonicArchitectureDiagram } from './diagram/SonicArchitectureDiagram'
+import { MotionExtractionDiagram } from './diagram/MotionExtractionDiagram'
+import { DeploymentLoopDiagram } from './diagram/DeploymentLoopDiagram'
+import { VlaSplitDiagram } from './diagram/VlaSplitDiagram'
 import { redTheme } from './diagram/diagramTokens'
 
 export default function App() {
@@ -72,6 +75,34 @@ export default function App() {
       </p>
 
       <SonicArchitectureDiagram className="essay-figure" />
+
+      <p>
+        SONIC only plays motions — first you need the dance as a file. That
+        is motion extraction: detect the human in a video, pin keypoints to
+        every joint, and let a generative motion model turn frames into one
+        continuous motion&thinsp;&mdash;&thinsp;including the parts the
+        camera never saw.
+      </p>
+
+      <MotionExtractionDiagram className="essay-figure" />
+
+      <p>
+        Deployment wires it all together: a motion-library web UI hosted on
+        the robot&rsquo;s own Jetson, streaming the chosen dance frame by
+        frame into the SONIC policy, which closes a 50&thinsp;Hz feedback
+        loop with the joints and sensors.
+      </p>
+
+      <DeploymentLoopDiagram className="essay-figure" />
+
+      <p>
+        And the outlook: with balance solved, a vision-language-action model
+        like Gr00t can take the upper body while SONIC keeps the lower body
+        steady&thinsp;&mdash;&thinsp;two systems, one latent language, one
+        robot.
+      </p>
+
+      <VlaSplitDiagram className="essay-figure" />
     </main>
   )
 }

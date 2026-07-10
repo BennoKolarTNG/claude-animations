@@ -69,6 +69,26 @@ sync while the G1 grays out. The side-lean wiggle mirrors halfway
 through: per-arm mirror wrappers swap the hands to the other side
 (~5s left, ~5s right) — the robot itself never turns.
 
+## The blogpost trio (extraction · deployment · VLA)
+
+Three more diagrams built on the visual conventions of the projects they
+explain (researched from their GitHub/paper figures):
+
+- `MotionExtractionDiagram` — video→SMPL via GENMO: a YOLOX detection
+  box (blue, filled label chip), ViTPose keypoints/skeleton in the
+  estimator palette (green left / orange right / blue trunk), a GEM-style
+  film-strip motion timeline whose unseen frame shows a gray ghost-pose
+  cluster until GENMO generatively commits to one, a red playhead sweep,
+  and the same red `dance_07.smpl` card that feeds the SONIC diagram.
+- `DeploymentLoopDiagram` — browser motion library (hosted on the
+  robot's Jetson) → wifi stream → SONIC latents → joint commands, with a
+  50 Hz sensor feedback loop and the wind-shove recovery payoff.
+- `VlaSplitDiagram` — GR00T-figure idioms: System 2 (magenta, ~10 Hz)
+  reads a camera frame + monospace prompt via modality-colored token
+  squares and drives the upper body; System 1 SONIC (teal, 50 Hz)
+  balances the lower body; a `teleop.json` detour gets struck through as
+  Gr00t writes the purple latent rack directly.
+
 ## Architecture
 
 ```
@@ -135,6 +155,9 @@ pages made for iframes:
 …/?embed=pipeline&theme=red&move=kick  red variant, kicking robot
 …/?embed=generalist                    one policy, many motions
 …/?embed=sonic                         SONIC encoder–latent–decoder
+…/?embed=extraction                    video → keypoints → GENMO → SMPL
+…/?embed=deployment                    browser → wifi → SONIC → 50 Hz loop
+…/?embed=vla                           Gr00t upper body + SONIC lower body
 …&caption=off                          hide the narrating caption line
 ```
 

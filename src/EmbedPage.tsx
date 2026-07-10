@@ -1,17 +1,18 @@
 import { EmbodiedAIPipelineDiagram } from './diagram/EmbodiedAIPipelineDiagram'
 import { GeneralistMotionPolicyDiagram } from './diagram/GeneralistMotionPolicyDiagram'
 import { SonicArchitectureDiagram } from './diagram/SonicArchitectureDiagram'
+import { VlaSplitDiagram } from './diagram/VlaSplitDiagram'
+import { DeploymentLoopDiagram } from './diagram/DeploymentLoopDiagram'
+import { MotionExtractionDiagram } from './diagram/MotionExtractionDiagram'
 import { blueTheme, redTheme } from './diagram/diagramTokens'
 import type { RobotMove } from './diagram/primitives/RobotDancer'
 
-export type EmbedName = 'pipeline' | 'generalist' | 'sonic'
+const EMBED_NAMES = ['pipeline', 'generalist', 'sonic', 'vla', 'deployment', 'extraction'] as const
+export type EmbedName = (typeof EMBED_NAMES)[number]
 
 export function parseEmbedName(params: URLSearchParams): EmbedName | null {
   const name = params.get('embed')
-  if (name === 'pipeline' || name === 'generalist' || name === 'sonic') {
-    return name
-  }
-  return null
+  return EMBED_NAMES.includes(name as EmbedName) ? (name as EmbedName) : null
 }
 
 /**
@@ -41,6 +42,27 @@ export function EmbedPage({ name }: { name: EmbedName }) {
     return (
       <div className="embed-page">
         <GeneralistMotionPolicyDiagram showCaption={showCaption} />
+      </div>
+    )
+  }
+  if (name === 'vla') {
+    return (
+      <div className="embed-page">
+        <VlaSplitDiagram showCaption={showCaption} />
+      </div>
+    )
+  }
+  if (name === 'deployment') {
+    return (
+      <div className="embed-page">
+        <DeploymentLoopDiagram showCaption={showCaption} />
+      </div>
+    )
+  }
+  if (name === 'extraction') {
+    return (
+      <div className="embed-page">
+        <MotionExtractionDiagram showCaption={showCaption} />
       </div>
     )
   }

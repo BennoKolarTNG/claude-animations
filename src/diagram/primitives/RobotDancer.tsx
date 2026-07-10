@@ -8,6 +8,8 @@ export type RobotMove =
   | 'sidewiggle' // both arms to one side (right arm across the body), rippling
   | 'wave' // one arm raised, waving
   | 'jump' // hopping, legs tucked, arms thrown up
+  | 'balance' // lower body only: slow weight shifts, arms at rest
+  | 'embodied' // arms working a task while the legs keep balancing
 
 interface RobotDancerProps {
   /** Animates while true, using the given move. */
