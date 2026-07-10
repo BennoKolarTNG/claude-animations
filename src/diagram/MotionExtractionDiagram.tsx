@@ -37,16 +37,16 @@ const PHASE_INDEX = Object.fromEntries(
 // --- layout constants --------------------------------------------------------
 // Top row: the two synchronized "players". Bottom row: the frame strip.
 const PANEL = { w: 180, h: 142, y: 72 }
-const VID = { cx: 210 }
-const SKEL = { cx: 420 }
+const VID = { cx: 235 }
+const SKEL = { cx: 445 }
 const FLOOR_Y = PANEL.y + PANEL.h - 18
-const GENMO = { x: 600, y: 100, w: 190, h: 84 }
-const STRIP = { x: 120, y: 254, w: 416, h: 112 }
+const GENMO = { x: 640, y: 100, w: 190, h: 84 }
+const STRIP = { x: 210, y: 254, w: 416, h: 112 }
 const SLOTS = 5
 const SLOT_W = 72
 const SLOT_GAP = 7
 const GAP_SLOT = 3
-const OUT = { x: 610, y: 308 }
+const OUT = { x: 724, y: 310 }
 
 const SLOT_POSES = [POSES.groove, POSES.point, POSES.lunge, POSES.step, POSES.reach]
 
@@ -189,9 +189,26 @@ export function MotionExtractionDiagram({
           spots holes · fills them
         </text>
 
-        {/* skeleton player → GENMO, GENMO → frame strip */}
+        {/* skeleton player → GENMO */}
         <FlowParticles x={SKEL.cx + PANEL.w / 2 + 4} y={PANEL.y + 62} y2={GENMO.y + 42} dx={GENMO.x - SKEL.cx - PANEL.w / 2 - 10} spreadStart={12} spreadEnd={6} count={4} duration={0.8} color={VITPOSE.torso} active={since('extract') && !staticMode && !at('fill')} />
-        <FlowParticles x={GENMO.x + 24} y={GENMO.y + GENMO.h + 4} y2={STRIP.y + 30} dx={STRIP.x + STRIP.w - GENMO.x - 44} spreadStart={5} spreadEnd={14} count={5} duration={0.9} color={GENMO_GREEN} active={since('extract') && !staticMode && !at('fill')} />
+        {/* GENMO → frame strip: a short elbow into the strip's end */}
+        <path
+          d={`M ${GENMO.x + 80} ${GENMO.y + GENMO.h + 2} C ${GENMO.x + 60} 240, ${STRIP.x + STRIP.w + 44} 268, ${STRIP.x + STRIP.w + 8} ${STRIP.y + 44}`}
+          fill="none"
+          stroke={GENMO_GREEN}
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          className="stage"
+          style={{ opacity: since('extract') ? 0.6 : 0 }}
+        />
+        <path
+          d="M 0 -4.5 L 7.5 0 L 0 4.5 Z"
+          fill={GENMO_GREEN}
+          transform={`translate(${STRIP.x + STRIP.w + 7} ${STRIP.y + 45}) rotate(140)`}
+          className="stage"
+          style={{ opacity: since('extract') ? 0.8 : 0 }}
+        />
+        <FlowParticles x={GENMO.x + 76} y={GENMO.y + GENMO.h + 6} y2={STRIP.y + 40} dx={STRIP.x + STRIP.w + 4 - GENMO.x - 76} spreadStart={5} spreadEnd={4} count={5} duration={0.8} color={GENMO_GREEN} active={since('extract') && !staticMode && !at('fill')} />
 
         {/* --- the motion frame strip, below the players ----------------------- */}
         <rect x={STRIP.x} y={STRIP.y} width={STRIP.w} height={STRIP.h} rx={12} fill="var(--diagram-surface)" stroke="var(--diagram-line)" strokeWidth={1.5} />
@@ -252,7 +269,7 @@ export function MotionExtractionDiagram({
 
         {/* GENMO's generative reach into the hole */}
         <path
-          d={`M ${GENMO.x + 30} ${GENMO.y + GENMO.h + 2} C 530 246, 470 250, ${slotX(GAP_SLOT) + 10} ${STRIP.y - 4}`}
+          d={`M ${GENMO.x + 30} ${GENMO.y + GENMO.h + 2} C 610 238, 550 248, ${slotX(GAP_SLOT) + 10} ${STRIP.y - 4}`}
           fill="none"
           stroke={GENMO_GREEN}
           strokeWidth={1.5}
@@ -292,7 +309,7 @@ export function MotionExtractionDiagram({
         />
 
         {/* --- the SMPL file out, right of the strip ----------------------------- */}
-        <FlowParticles x={STRIP.x + STRIP.w + 4} y={OUT.y} dx={OUT.x - 34 - STRIP.x - STRIP.w - 8} spreadStart={8} spreadEnd={4} count={5} duration={0.8} color={SMPL_RED} active={at('output')} />
+        <FlowParticles x={STRIP.x + STRIP.w + 6} y={OUT.y} dx={OUT.x - 48 - STRIP.x - STRIP.w - 10} spreadStart={8} spreadEnd={5} count={6} duration={0.8} radius={2.8} color={SMPL_RED} active={at('output')} />
         <g
           className="stage stage-pop"
           style={{
@@ -300,8 +317,20 @@ export function MotionExtractionDiagram({
             opacity: since('output') ? 1 : 0,
           }}
         >
-          <rect x={-30} y={-22} width={60} height={44} rx={8} fill="var(--diagram-surface)" stroke={SMPL_RED} strokeWidth={1.6} />
-          <g stroke={SMPL_RED} strokeWidth={1.9} strokeLinecap="round" fill="none">
+          <rect
+            className={at('output') ? 'laptop-tile-playing' : undefined}
+            x={-46}
+            y={-34}
+            width={92}
+            height={68}
+            rx={13}
+            fill="none"
+            stroke={SMPL_RED}
+            strokeWidth={6}
+            opacity={0.25}
+          />
+          <rect x={-42} y={-30} width={84} height={60} rx={10} fill="var(--diagram-surface)" stroke={SMPL_RED} strokeWidth={1.8} />
+          <g transform="scale(1.45) translate(0 -1)" stroke={SMPL_RED} strokeWidth={1.9} strokeLinecap="round" fill="none">
             <circle cx={0} cy={-10} r={3.1} />
             <path d="M 0 -6.5 L 0 3" />
             <path d="M 0 -3.5 L -8 1.5" />
@@ -309,7 +338,15 @@ export function MotionExtractionDiagram({
             <path d="M 0 3 L -5.5 12" />
             <path d="M 0 3 L 5.5 12" />
           </g>
-          <text className="diagram-sublabel" y={38} textAnchor="middle">
+          <text
+            y={52}
+            textAnchor="middle"
+            fontFamily="var(--diagram-font-label)"
+            fontSize={11.5}
+            fontWeight={600}
+            letterSpacing="0.08em"
+            fill={SMPL_RED}
+          >
             dance_07.smpl
           </text>
         </g>
