@@ -1,8 +1,8 @@
 import { useRef } from 'react'
 import { DiagramFrame } from './DiagramFrame'
 import { FlowParticles } from './primitives/FlowParticles'
+import { HumanDancer } from './primitives/HumanDancer'
 import { KeypointFigure, POSES } from './primitives/KeypointFigure'
-import { StageLabel } from './primitives/StageLabel'
 import { useOnScreen, usePrefersReducedMotion, useTimeline } from './useTimeline'
 import type { CSSVarStyle, DiagramTheme } from './diagramTokens'
 
@@ -20,10 +20,10 @@ const PHASES = [
   { name: 'video', duration: 1800, caption: 'A human dances on plain video.' },
   { name: 'detect', duration: 1800, caption: 'YOLOX finds the human…' },
   { name: 'keypoints', duration: 2000, caption: '…ViTPose pins keypoints to every joint…' },
-  { name: 'skeleton', duration: 1800, caption: '…and a skeleton takes shape.' },
-  { name: 'extract', duration: 2600, caption: 'GENMO lifts the skeleton out of the pixels, frame by frame…' },
-  { name: 'gap', duration: 2200, caption: '…until the camera loses sight — a gap.' },
-  { name: 'fill', duration: 2600, caption: 'Being generative, GENMO simply predicts the motion it cannot see.' },
+  { name: 'skeleton', duration: 2200, caption: '…and the dance plays as a pure skeleton, in step with the footage.' },
+  { name: 'extract', duration: 2600, caption: 'GENMO splits the motion into frames…' },
+  { name: 'gap', duration: 2200, caption: '…and notices a hole the camera never saw.' },
+  { name: 'fill', duration: 2600, caption: 'Being generative, GENMO simply predicts the missing frame.' },
   { name: 'smooth', duration: 2100, caption: 'Chained and smoothed into one continuous motion…' },
   { name: 'output', duration: 2600, caption: '…saved as SMPL: the universal format the robot pipeline speaks.' },
   { name: 'reset', duration: 1000, caption: 'Next video.' },
@@ -35,17 +35,18 @@ const PHASE_INDEX = Object.fromEntries(
 ) as Record<PhaseName, number>
 
 // --- layout constants --------------------------------------------------------
-const VIDEO = { cx: 140, cy: 162, w: 180, h: 130 }
-const PERSON = { x: 140, y: 216, scale: 1.3 }
-const BOX = { x: 100, y: 122, w: 80, h: 100 }
-const GENMO = { x: 292, y: 116, w: 186, h: 92 }
-const STRIP = { x: 492, y: 100, w: 414, h: 130 }
+// Top row: the two synchronized "players". Bottom row: the frame strip.
+const PANEL = { w: 180, h: 142, y: 72 }
+const VID = { cx: 210 }
+const SKEL = { cx: 420 }
+const FLOOR_Y = PANEL.y + PANEL.h - 18
+const GENMO = { x: 600, y: 100, w: 190, h: 84 }
+const STRIP = { x: 120, y: 254, w: 416, h: 112 }
 const SLOTS = 5
-const SLOT_W = 70
-const SLOT_GAP = 9
+const SLOT_W = 72
+const SLOT_GAP = 7
 const GAP_SLOT = 3
-const OUT = { x: 800, y: 292 }
-const LABEL_Y = 388
+const OUT = { x: 610, y: 308 }
 
 const SLOT_POSES = [POSES.groove, POSES.point, POSES.lunge, POSES.step, POSES.reach]
 
@@ -60,16 +61,16 @@ export interface MotionExtractionDiagramProps {
 }
 
 /**
- * How a dance video becomes an SMPL motion file: YOLOX detection box →
- * ViTPose keypoints and skeleton (green-left / orange-right / blue-trunk,
- * the estimator convention) → GENMO extracts a skeleton per frame onto a
- * film-strip timeline, generates the frames the camera never saw (gray
- * ghost poses resolving into a committed one — GEM's own idiom), and a
- * red playhead sweep seals it into one smooth motion, saved as the same
- * red dance_07.smpl card that feeds the SONIC diagram.
+ * How a dance video becomes an SMPL motion file: a YOLOX box finds the
+ * dancing human, ViTPose keypoints appear on the moving body, and a
+ * skeleton twin plays beside the footage in perfect sync. Below, GENMO
+ * splits the motion into frames, spots the hole the camera never saw,
+ * generatively fills it (gray ghost poses resolving into a committed
+ * one), smooths the chain with a red playhead sweep, and exports the
+ * same red dance_07.smpl card that feeds the SONIC diagram.
  */
 export function MotionExtractionDiagram({
-  title = 'Motion extraction pipeline: a detection box finds the dancer in a video, pose keypoints become a skeleton, GENMO extracts a skeleton per frame into a timeline, generatively fills a gap the camera never saw, and exports the motion as an SMPL file.',
+  title = 'Motion extraction pipeline: a detection box finds the dancer in a video, pose keypoints track the moving body, a synchronized skeleton plays next to the footage, and GENMO splits the motion into frames, generatively fills a gap, and exports the motion as an SMPL file.',
   showCaption = true,
   theme,
   className,
@@ -84,72 +85,91 @@ export function MotionExtractionDiagram({
   const since = (n: PhaseName) =>
     staticMode || (index >= PHASE_INDEX[n] && phase !== 'reset')
 
+  const dancing = !staticMode
   const caption = staticMode
-    ? 'Video → detection → keypoints → skeleton per frame → gaps generated → SMPL.'
+    ? 'Video → keypoints → skeleton → frames, gaps generated → SMPL.'
     : PHASES[index].caption
+
+  const panel = (cx: number, stroke: string) => (
+    <>
+      <rect
+        x={cx - PANEL.w / 2}
+        y={PANEL.y}
+        width={PANEL.w}
+        height={PANEL.h}
+        rx={10}
+        fill="var(--diagram-surface)"
+        stroke={stroke}
+        strokeWidth={1.6}
+      />
+      <line
+        x1={cx - PANEL.w / 2 + 14}
+        y1={FLOOR_Y}
+        x2={cx + PANEL.w / 2 - 14}
+        y2={FLOOR_Y}
+        stroke="var(--diagram-line)"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+    </>
+  )
 
   return (
     <div ref={rootRef} className={className}>
       <DiagramFrame
         title={title}
-        viewBox="0 60 960 348"
+        viewBox="0 55 960 350"
         theme={theme}
         caption={showCaption ? caption : undefined}
         captionKey={caption}
       >
-        {/* --- the source video ------------------------------------------------ */}
-        <rect
-          x={VIDEO.cx - VIDEO.w / 2}
-          y={VIDEO.cy - VIDEO.h / 2}
-          width={VIDEO.w}
-          height={VIDEO.h}
-          rx={10}
-          fill="var(--diagram-surface)"
-          stroke={VIDEO_BLUE}
-          strokeWidth={1.6}
-        />
+        {/* --- player 1: the raw footage -------------------------------------- */}
+        {panel(VID.cx, VIDEO_BLUE)}
         <path
-          d={`M ${VIDEO.cx + VIDEO.w / 2 - 22} ${VIDEO.cy - VIDEO.h / 2 + 10} l 10 6 l -10 6 Z`}
+          d={`M ${VID.cx + PANEL.w / 2 - 22} ${PANEL.y + 10} l 10 6 l -10 6 Z`}
           fill={VIDEO_BLUE}
           opacity={0.85}
         />
-        <line
-          x1={VIDEO.cx - VIDEO.w / 2 + 14}
-          y1={PERSON.y + 2}
-          x2={VIDEO.cx + VIDEO.w / 2 - 14}
-          y2={PERSON.y + 2}
-          stroke="var(--diagram-line)"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-        />
-        {/* the human: soft solid figure */}
-        <g transform={`translate(${PERSON.x} ${PERSON.y})`}>
-          <KeypointFigure pose={POSES.groove} scale={PERSON.scale} dots={false} boneWidth={4.5} color="var(--diagram-muted)" />
+        {/* the human, actually dancing */}
+        <g transform={`translate(${VID.cx} ${FLOOR_Y})`}>
+          <HumanDancer variant="solid" dancing={dancing} />
         </g>
-        {/* ViTPose overlay: keypoints, then the colored skeleton */}
-        {since('skeleton') && (
-          <g transform={`translate(${PERSON.x} ${PERSON.y})`}>
-            <KeypointFigure pose={POSES.groove} scale={PERSON.scale} dots={false} boneWidth={2} color={VITPOSE} popIn={!staticMode} />
+        {/* ViTPose overlay on the MOVING body — same rig, so it tracks */}
+        <g className="stage" style={{ opacity: since('keypoints') ? 1 : 0 }}>
+          <g transform={`translate(${VID.cx} ${FLOOR_Y})`}>
+            <HumanDancer variant="dots" dancing={dancing} />
           </g>
-        )}
-        {since('keypoints') && (
-          <g transform={`translate(${PERSON.x} ${PERSON.y})`}>
-            <KeypointFigure pose={POSES.groove} scale={PERSON.scale} bones={false} dotRadius={2.4} color={VITPOSE} popIn={!staticMode} />
+        </g>
+        <g className="stage" style={{ opacity: since('skeleton') ? 1 : 0 }}>
+          <g transform={`translate(${VID.cx} ${FLOOR_Y})`}>
+            <HumanDancer variant="bones" dancing={dancing} />
           </g>
-        )}
+        </g>
         {/* YOLOX detection box + label chip */}
         <g className="stage" style={{ opacity: since('detect') ? 1 : 0 }}>
-          <rect x={BOX.x} y={BOX.y} width={BOX.w} height={BOX.h} fill="none" stroke={YOLOX_BLUE} strokeWidth={2} />
-          <rect x={BOX.x} y={BOX.y} width={62} height={13} fill={YOLOX_BLUE} opacity={0.85} />
-          <text x={BOX.x + 4} y={BOX.y + 10} fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace" fontSize={8.5} fill="#ffffff">
+          <rect x={VID.cx - 38} y={PANEL.y + 28} width={76} height={100} fill="none" stroke={YOLOX_BLUE} strokeWidth={2} />
+          <rect x={VID.cx - 38} y={PANEL.y + 28} width={62} height={13} fill={YOLOX_BLUE} opacity={0.85} />
+          <text x={VID.cx - 34} y={PANEL.y + 38} fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace" fontSize={8.5} fill="#ffffff">
             person 0.98
           </text>
         </g>
-        <text className="diagram-sublabel" x={VIDEO.cx} y={VIDEO.cy + VIDEO.h / 2 + 16} textAnchor="middle">
+        <text className="diagram-sublabel" x={VID.cx} y={PANEL.y + PANEL.h + 16} textAnchor="middle">
           dance_video.mp4
         </text>
 
-        {/* --- GENMO ------------------------------------------------------------ */}
+        {/* --- player 2: the skeleton twin, playing in sync -------------------- */}
+        <g className="stage" style={{ opacity: since('skeleton') ? 1 : 0.2 }}>
+          {panel(SKEL.cx, since('skeleton') ? VITPOSE.torso : 'var(--diagram-line)')}
+          <g transform={`translate(${SKEL.cx} ${FLOOR_Y})`}>
+            <HumanDancer variant="skeleton" dancing={dancing} />
+          </g>
+          <text className="diagram-sublabel" x={SKEL.cx} y={PANEL.y + PANEL.h + 16} textAnchor="middle">
+            vitpose · 17 joints
+          </text>
+        </g>
+        <FlowParticles x={VID.cx + PANEL.w / 2 + 4} y={PANEL.y + 70} dx={SKEL.cx - VID.cx - PANEL.w - 8} spreadStart={16} spreadEnd={10} count={4} duration={0.9} color={VITPOSE.torso} active={since('skeleton') && !staticMode} />
+
+        {/* --- GENMO, between the players and the frame strip ------------------ */}
         <rect x={GENMO.x} y={GENMO.y} width={GENMO.w} height={GENMO.h} rx={12} fill="var(--diagram-surface)" stroke={since('extract') ? 'var(--diagram-ink)' : 'var(--diagram-line)'} strokeWidth={1.5} style={{ transition: 'stroke 600ms ease' }} />
         <rect x={GENMO.x} y={GENMO.y} width={GENMO.w} height={GENMO.h} rx={12} fill={GENMO_GREEN} opacity={since('extract') ? 0.07 : 0} style={{ transition: 'opacity 600ms ease' }} />
         <text x={GENMO.x + 14} y={GENMO.y + 27} fontFamily="var(--diagram-font-label)" fontSize={13.5} fontWeight={700} fill="var(--diagram-ink)">
@@ -158,7 +178,6 @@ export function MotionExtractionDiagram({
         <text x={GENMO.x + 14} y={GENMO.y + 44} fontFamily="var(--diagram-font-label)" fontSize={10} fontWeight={600} letterSpacing="0.06em" fill={GENMO_GREEN}>
           GENERATIVE MOTION MODEL
         </text>
-        {/* a spark: sees, and imagines */}
         <path
           className={at('fill') ? 'laptop-tile-playing' : undefined}
           d={`M ${GENMO.x + GENMO.w - 30} ${GENMO.y + 12} l 2.6 6.4 l 6.4 2.6 l -6.4 2.6 l -2.6 6.4 l -2.6 -6.4 l -6.4 -2.6 l 6.4 -2.6 Z`}
@@ -166,14 +185,15 @@ export function MotionExtractionDiagram({
           opacity={since('extract') ? 0.9 : 0.3}
           style={{ transition: 'opacity 600ms ease' }}
         />
-        <text className="diagram-sublabel" x={GENMO.x + 14} y={GENMO.y + 72}>
-          video in · motion out
+        <text className="diagram-sublabel" x={GENMO.x + 14} y={GENMO.y + 66}>
+          spots holes · fills them
         </text>
 
-        <FlowParticles x={VIDEO.cx + VIDEO.w / 2 + 4} y={VIDEO.cy} dx={GENMO.x - VIDEO.cx - VIDEO.w / 2 - 8} spreadStart={18} spreadEnd={8} count={5} duration={1.0} color={VIDEO_BLUE} active={since('extract') && !staticMode && !at('fill')} />
-        <FlowParticles x={GENMO.x + GENMO.w + 4} y={GENMO.y + GENMO.h / 2} y2={STRIP.y + 60} dx={STRIP.x - GENMO.x - GENMO.w - 10} spreadStart={6} spreadEnd={20} count={5} duration={0.9} color={GENMO_GREEN} active={since('extract') && !staticMode && !at('fill')} />
+        {/* skeleton player → GENMO, GENMO → frame strip */}
+        <FlowParticles x={SKEL.cx + PANEL.w / 2 + 4} y={PANEL.y + 62} y2={GENMO.y + 42} dx={GENMO.x - SKEL.cx - PANEL.w / 2 - 10} spreadStart={12} spreadEnd={6} count={4} duration={0.8} color={VITPOSE.torso} active={since('extract') && !staticMode && !at('fill')} />
+        <FlowParticles x={GENMO.x + 24} y={GENMO.y + GENMO.h + 4} y2={STRIP.y + 30} dx={STRIP.x + STRIP.w - GENMO.x - 44} spreadStart={5} spreadEnd={14} count={5} duration={0.9} color={GENMO_GREEN} active={since('extract') && !staticMode && !at('fill')} />
 
-        {/* --- the motion timeline (film strip) --------------------------------- */}
+        {/* --- the motion frame strip, below the players ----------------------- */}
         <rect x={STRIP.x} y={STRIP.y} width={STRIP.w} height={STRIP.h} rx={12} fill="var(--diagram-surface)" stroke="var(--diagram-line)" strokeWidth={1.5} />
         {Array.from({ length: SLOTS }, (_, i) => {
           const cx = slotX(i)
@@ -188,9 +208,9 @@ export function MotionExtractionDiagram({
             <g key={i}>
               <rect
                 x={cx - SLOT_W / 2}
-                y={STRIP.y + 14}
+                y={STRIP.y + 12}
                 width={SLOT_W}
-                height={STRIP.h - 28}
+                height={STRIP.h - 24}
                 rx={8}
                 fill="var(--diagram-bg)"
                 stroke={gapOpen ? SMPL_RED : 'var(--diagram-line)'}
@@ -198,29 +218,27 @@ export function MotionExtractionDiagram({
                 strokeDasharray={gapOpen ? '5 4' : undefined}
                 style={{ transition: 'stroke 500ms ease' }}
               />
-              {/* extracted skeletons, popping in per frame */}
               {filled && (
-                <g transform={`translate(${cx} ${STRIP.y + STRIP.h - 24})`}>
+                <g transform={`translate(${cx} ${STRIP.y + STRIP.h - 22})`}>
                   <KeypointFigure
                     pose={SLOT_POSES[i]}
-                    scale={0.82}
-                    dotRadius={1.7}
-                    boneWidth={1.8}
+                    scale={0.68}
+                    dotRadius={1.5}
+                    boneWidth={1.7}
                     color={VITPOSE}
                     popIn={!staticMode}
                     popDelay={isGap ? 0.5 : i < GAP_SLOT ? i * 0.55 : (i - GAP_SLOT) * 0.4}
                   />
                 </g>
               )}
-              {/* the unseen frame: a cloud of uncertain gray ghosts */}
               {gapOpen && (
-                <g transform={`translate(${cx} ${STRIP.y + STRIP.h - 24})`}>
+                <g transform={`translate(${cx} ${STRIP.y + STRIP.h - 22})`}>
                   {[POSES.point, POSES.step, POSES.lunge].map((p, gi) => (
                     <g key={gi} className="ghost-flicker" style={{ '--d': `${gi * 0.4}s` } as CSSVarStyle} transform={`translate(${(gi - 1) * 4} 0)`}>
-                      <KeypointFigure pose={p} scale={0.82} dots={false} boneWidth={1.8} color="var(--diagram-muted)" ghost />
+                      <KeypointFigure pose={p} scale={0.68} dots={false} boneWidth={1.7} color="var(--diagram-muted)" ghost />
                     </g>
                   ))}
-                  <text x={0} y={-STRIP.h + 52} textAnchor="middle" fontFamily="var(--diagram-font-label)" fontSize={11} fontWeight={700} fill={SMPL_RED}>
+                  <text x={0} y={-STRIP.h + 46} textAnchor="middle" fontFamily="var(--diagram-font-label)" fontSize={11} fontWeight={700} fill={SMPL_RED}>
                     ?
                   </text>
                 </g>
@@ -228,9 +246,13 @@ export function MotionExtractionDiagram({
             </g>
           )
         })}
-        {/* GENMO's generative reach into the gap */}
+        <text className="diagram-sublabel" x={STRIP.x + STRIP.w / 2} y={STRIP.y + STRIP.h + 16} textAnchor="middle">
+          motion, frame by frame
+        </text>
+
+        {/* GENMO's generative reach into the hole */}
         <path
-          d={`M ${GENMO.x + GENMO.w - 20} ${GENMO.y - 4} C 540 52, 660 52, ${slotX(GAP_SLOT)} ${STRIP.y - 4}`}
+          d={`M ${GENMO.x + 30} ${GENMO.y + GENMO.h + 2} C 530 246, 470 250, ${slotX(GAP_SLOT) + 10} ${STRIP.y - 4}`}
           fill="none"
           stroke={GENMO_GREEN}
           strokeWidth={1.5}
@@ -239,11 +261,11 @@ export function MotionExtractionDiagram({
           className="stage"
           style={{ opacity: at('fill') ? 0.8 : staticMode ? 0.6 : 0 }}
         />
-        <FlowParticles x={GENMO.x + GENMO.w - 18} y={GENMO.y - 8} y2={STRIP.y - 10} dx={slotX(GAP_SLOT) - GENMO.x - GENMO.w + 10} spreadStart={4} spreadEnd={3} count={4} duration={0.8} radius={2} shape="square" color={GENMO_GREEN} active={at('fill')} />
+        <FlowParticles x={GENMO.x + 28} y={GENMO.y + GENMO.h + 6} y2={STRIP.y - 8} dx={slotX(GAP_SLOT) + 8 - GENMO.x - 28} spreadStart={4} spreadEnd={3} count={4} duration={0.8} radius={2} shape="square" color={GENMO_GREEN} active={at('fill')} />
 
         {/* smooth motion curve through the frames */}
         <path
-          d={`M ${slotX(0)} ${STRIP.y + 62} C ${slotX(1) - 20} ${STRIP.y + 48}, ${slotX(1) + 20} ${STRIP.y + 48}, ${slotX(2)} ${STRIP.y + 60} S ${slotX(3) + 20} ${STRIP.y + 52}, ${slotX(4)} ${STRIP.y + 58}`}
+          d={`M ${slotX(0)} ${STRIP.y + 52} C ${slotX(1) - 20} ${STRIP.y + 40}, ${slotX(1) + 20} ${STRIP.y + 40}, ${slotX(2)} ${STRIP.y + 50} S ${slotX(3) + 20} ${STRIP.y + 43}, ${slotX(4)} ${STRIP.y + 48}`}
           fill="none"
           stroke={GENMO_GREEN}
           strokeWidth={2}
@@ -260,17 +282,17 @@ export function MotionExtractionDiagram({
         <line
           className={`playhead${at('smooth') ? ' sweeping' : ''}`}
           x1={STRIP.x + 10}
-          y1={STRIP.y + 8}
+          y1={STRIP.y + 7}
           x2={STRIP.x + 10}
-          y2={STRIP.y + STRIP.h - 8}
+          y2={STRIP.y + STRIP.h - 7}
           stroke="#e11d48"
           strokeWidth={2}
           strokeLinecap="round"
           style={{ '--sweep': `${STRIP.w - 20}px` } as CSSVarStyle}
         />
 
-        {/* --- the SMPL file out ------------------------------------------------- */}
-        <FlowParticles x={STRIP.x + STRIP.w - 120} y={STRIP.y + STRIP.h + 4} y2={OUT.y - 4} dx={OUT.x - 44 - (STRIP.x + STRIP.w - 120)} spreadStart={10} spreadEnd={4} count={5} duration={0.9} color={SMPL_RED} active={at('output')} />
+        {/* --- the SMPL file out, right of the strip ----------------------------- */}
+        <FlowParticles x={STRIP.x + STRIP.w + 4} y={OUT.y} dx={OUT.x - 34 - STRIP.x - STRIP.w - 8} spreadStart={8} spreadEnd={4} count={5} duration={0.8} color={SMPL_RED} active={at('output')} />
         <g
           className="stage stage-pop"
           style={{
@@ -291,12 +313,6 @@ export function MotionExtractionDiagram({
             dance_07.smpl
           </text>
         </g>
-
-        {/* --- labels ------------------------------------------------------------- */}
-        <StageLabel x={VIDEO.cx} y={LABEL_Y} text="video" active={at('video') || at('detect') || at('keypoints') || at('skeleton')} accent={VIDEO_BLUE} />
-        <StageLabel x={GENMO.x + GENMO.w / 2} y={LABEL_Y} text="extract" active={at('extract') || at('fill')} accent={GENMO_GREEN} />
-        <StageLabel x={STRIP.x + STRIP.w / 2 - 40} y={LABEL_Y} text="motion timeline" active={at('gap') || at('smooth')} accent="#3399ff" />
-        <StageLabel x={OUT.x} y={LABEL_Y} text="smpl out" active={at('output')} accent={SMPL_RED} />
       </DiagramFrame>
     </div>
   )
