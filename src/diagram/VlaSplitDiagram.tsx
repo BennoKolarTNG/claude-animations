@@ -50,8 +50,8 @@ const TOP_Y = CHUNK.y + CHUNK.h / 2 // upper-body stream lane
 const BOT_Y = PLANNER.y + PLANNER.h / 2 // lower-body stream lane
 const TELEOP = { x: 505, y: TOP_Y, w: 130, h: 58 }
 const HENC = { x: 598, y: (TOP_Y + BOT_Y) / 2, len: 74 }
-const SONIC = { x: 636, y: 262, w: 196, h: 196 }
-const RACK = { x: 748, y: 316 }
+const SONIC = { x: 636, y: 262, w: 176, h: 196 }
+const RACK = { x: 736, y: 322 }
 const ROBOT = { x: 900, ground: 454, scale: 1.5 }
 const ZONE = { x: 856, w: 88, top: 336, waist: 408, bottom: 458 }
 const LABEL_Y = 484
@@ -292,7 +292,7 @@ export function VlaSplitDiagram({
           <text x={SONIC.x + 16} y={SONIC.y + 26} fontFamily="var(--diagram-font-label)" fontSize={13.5} fontWeight={700} fill="var(--diagram-ink)">
             SONIC
           </text>
-          <text x={SONIC.x + 82} y={SONIC.y + 26} fontFamily="var(--diagram-font-label)" fontSize={9} fontWeight={600} letterSpacing="0.05em" fill={LATENT}>
+          <text x={SONIC.x + 16} y={SONIC.y + 42} fontFamily="var(--diagram-font-label)" fontSize={9} fontWeight={600} letterSpacing="0.05em" fill={LATENT}>
             WHOLE-BODY · 50 HZ
           </text>
           <LatentRack x={RACK.x} y={RACK.y} cells={7} cellSize={13} gap={3} color={LATENT} mode={since('hybrid') && !staticMode ? 'live' : staticMode ? 'hold' : 'idle'} pattern={[0, 2, 4, 6]} vertical />
@@ -308,9 +308,9 @@ export function VlaSplitDiagram({
         <FlowParticles x={HENC.x + HENC.len + 4} y={HENC.y} y2={RACK.y + 62} dx={RACK.x - 22 - HENC.x - HENC.len} spreadStart={4} spreadEnd={4} count={4} duration={0.6} radius={2} color={LATENT} active={since('hybrid') && !staticMode} />
 
         {/* ================= decode → the split body ======================== */}
-        <path d={`M ${SONIC.x + SONIC.w + 2} ${RACK.y + 64} C 852 384, 858 392, ${ZONE.x + 16} ${ZONE.waist - 10}`} fill="none" stroke={ACTION} strokeWidth={1.5} strokeLinecap="round" className="stage" style={{ opacity: robotOn ? 0.6 : 0 }} />
+        <path d={`M ${SONIC.x + SONIC.w + 2} ${RACK.y + 64} C 838 390, 844 396, ${ZONE.x + 16} ${ZONE.waist - 10}`} fill="none" stroke={ACTION} strokeWidth={1.5} strokeLinecap="round" className="stage" style={{ opacity: robotOn ? 0.6 : 0 }} />
         <FlowParticles x={SONIC.x + SONIC.w + 4} y={RACK.y + 62} y2={ZONE.waist - 12} dx={ZONE.x + 12 - SONIC.x - SONIC.w} spreadStart={3} spreadEnd={3} count={6} duration={0.55} color={ACTION} active={robotOn && !staticMode} />
-        <text className="math-label" x={SONIC.x + SONIC.w + 22} y={RACK.y + 40} textAnchor="middle" style={{ opacity: robotOn ? 1 : 0.35, transition: 'opacity 500ms ease' }}>
+        <text className="math-label" x={SONIC.x + SONIC.w + 20} y={RACK.y + 36} textAnchor="middle" style={{ opacity: robotOn ? 1 : 0.35, transition: 'opacity 500ms ease' }}>
           D<tspan className="math-sub" dy={3}>c</tspan>
         </text>
 
