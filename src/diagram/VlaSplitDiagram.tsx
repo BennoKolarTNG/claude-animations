@@ -24,8 +24,8 @@ const PHASES = [
   { name: 'system2', duration: 2600, caption: 'System 2 — a vision-language model — reads all three and plans, at ~10 Hz.' },
   { name: 'system1', duration: 2600, caption: 'System 1 turns the plan into a chunk of upper-body actions.' },
   { name: 'lower', duration: 2400, caption: 'Meanwhile a kinematic planner produces the lower body: stance, steps, balance targets.' },
-  { name: 'hybrid', duration: 2800, caption: 'Both streams meet in SONIC’s Hybrid Encoder — the upper body wrapped as teleop data.' },
-  { name: 'decode', duration: 2600, caption: '…fused into the latents and decoded: arms on task, legs on balance.' },
+  { name: 'hybrid', duration: 3600, caption: 'Both streams meet in SONIC’s Hybrid Encoder — the upper body wrapped as teleop data.' },
+  { name: 'decode', duration: 3200, caption: '…fused into the latents and decoded: arms on task, legs on balance.' },
   { name: 'direct', duration: 3000, caption: 'The upgrade: finetuned on the latents, Gr00t’s stream routes straight past the teleop format.' },
   { name: 'act', duration: 2600, caption: 'Task above, balance below — one latent language in between.' },
   { name: 'reset', duration: 1000, caption: 'Two systems, one body.' },
@@ -210,7 +210,7 @@ export function VlaSplitDiagram({
         </g>
 
         {/* ================= the action chunk, below GR00T ================= */}
-        <g className="stage" style={focus('system1', 'hybrid', 'direct')}>
+        <g className="stage" style={focus('system1', 'hybrid', 'decode', 'direct')}>
           <rect x={CHUNK.x} y={CHUNK.y} width={CHUNK.w} height={CHUNK.h} rx={10} fill="var(--diagram-surface)" stroke={S1_TEAL} strokeWidth={1.5} strokeDasharray="6 4" />
           <text className="math-label" x={CHUNK.x + 52} y={CHUNK.y + 24} textAnchor="middle">
             a<tspan className="math-sub" dy={3}>t</tspan>
@@ -224,7 +224,7 @@ export function VlaSplitDiagram({
         <FlowParticles x={GROOT.x + GROOT.w / 2 - 30} y={GROOT.y + GROOT.h + 4} dx={0.001} y2={CHUNK.y - 4} spreadStart={26} spreadEnd={26} count={3} duration={0.5} radius={2} shape="square" color={S1_TEAL} active={since('system1') && !staticMode} />
 
         {/* ================= the kinematic planner (lower body) ============ */}
-        <g className="stage" style={focus('lower', 'hybrid')}>
+        <g className="stage" style={focus('lower', 'hybrid', 'decode', 'direct')}>
           <rect x={PLANNER.x} y={PLANNER.y} width={PLANNER.w} height={PLANNER.h} rx={10} fill="var(--diagram-surface)" stroke={since('lower') ? PLANNER_BLUE : 'var(--diagram-line)'} strokeWidth={1.5} style={{ transition: 'stroke 500ms ease' }} />
           <text x={PLANNER.x + 12} y={PLANNER.y + 20} fontFamily="var(--diagram-font-label)" fontSize={10.5} fontWeight={700} fill="var(--diagram-ink)">
             KINEMATIC PLANNER
@@ -236,7 +236,7 @@ export function VlaSplitDiagram({
 
         {/* ================= two parallel streams into the adapter ========== */}
         {/* the teleop wrapper: VR headset + tracked joints, alive with flow */}
-        <g className="stage" style={{ ...focus('hybrid', 'direct'), opacity: directOn && !staticMode ? 0.35 : (focus('hybrid', 'direct').opacity as number) }}>
+        <g className="stage" style={{ ...focus('hybrid', 'decode', 'direct'), opacity: directOn && !staticMode ? 0.35 : (focus('hybrid', 'decode', 'direct').opacity as number) }}>
           <rect x={TELEOP.x - TELEOP.w / 2} y={TELEOP.y - TELEOP.h / 2} width={TELEOP.w} height={TELEOP.h} rx={9} fill="var(--diagram-surface)" stroke="var(--diagram-muted)" strokeWidth={1.4} />
           {/* VR headset */}
           <rect x={TELEOP.x - 46} y={TELEOP.y - 17} width={34} height={17} rx={7} fill="none" stroke="var(--diagram-ink)" strokeWidth={1.6} />
@@ -308,17 +308,16 @@ export function VlaSplitDiagram({
         <FlowParticles x={HENC.x + HENC.len + 4} y={HENC.y} y2={RACK.y + 62} dx={RACK.x - 22 - HENC.x - HENC.len} spreadStart={4} spreadEnd={4} count={4} duration={0.6} radius={2} color={LATENT} active={since('hybrid') && !staticMode} />
 
         {/* ================= decode → the split body ======================== */}
-        <path d={`M ${SONIC.x + SONIC.w + 2} ${RACK.y + 64} C 838 390, 844 396, ${ZONE.x + 16} ${ZONE.waist - 10}`} fill="none" stroke={ACTION} strokeWidth={1.5} strokeLinecap="round" className="stage" style={{ opacity: robotOn ? 0.6 : 0 }} />
         <FlowParticles x={SONIC.x + SONIC.w + 4} y={RACK.y + 62} y2={ZONE.waist - 12} dx={ZONE.x + 12 - SONIC.x - SONIC.w} spreadStart={3} spreadEnd={3} count={6} duration={0.55} color={ACTION} active={robotOn && !staticMode} />
         <text className="math-label" x={SONIC.x + SONIC.w + 20} y={RACK.y + 36} textAnchor="middle" style={{ opacity: robotOn ? 1 : 0.35, transition: 'opacity 500ms ease' }}>
           D<tspan className="math-sub" dy={3}>c</tspan>
         </text>
 
         <g className="stage" style={focus('decode', 'direct')}>
-          <rect x={ZONE.x} y={ZONE.top} width={ZONE.w} height={ZONE.waist - ZONE.top} rx={9} fill={S2_PINK} fillOpacity={robotOn ? 0.08 : 0.02} stroke="none" style={{ transition: 'fill-opacity 600ms ease' }} />
+          <rect x={ZONE.x} y={ZONE.top} width={ZONE.w} height={ZONE.waist - ZONE.top} rx={9} fill={S1_TEAL} fillOpacity={robotOn ? 0.1 : 0.02} stroke="none" style={{ transition: 'fill-opacity 600ms ease' }} />
           <rect x={ZONE.x} y={ZONE.waist} width={ZONE.w} height={ZONE.bottom - ZONE.waist} rx={9} fill={PLANNER_BLUE} fillOpacity={robotOn ? 0.1 : 0.02} stroke="none" style={{ transition: 'fill-opacity 600ms ease' }} />
           <line x1={ZONE.x - 6} y1={ZONE.waist} x2={ZONE.x + ZONE.w + 6} y2={ZONE.waist} stroke="var(--diagram-muted)" strokeWidth={1.2} strokeDasharray="4 4" opacity={0.8} />
-          <text className="diagram-sublabel" x={ZONE.x - 8} y={ZONE.top + 34} textAnchor="end" style={{ fill: S2_PINK }}>
+          <text className="diagram-sublabel" x={ZONE.x - 8} y={ZONE.top + 34} textAnchor="end" style={{ fill: S1_TEAL }}>
             task
           </text>
           <text className="diagram-sublabel" x={ZONE.x - 8} y={ZONE.waist + 26} textAnchor="end" style={{ fill: PLANNER_BLUE }}>
