@@ -19,6 +19,9 @@ interface RobotDancerProps {
   active: boolean
   /** Override for the chest/antenna light (defaults to the action accent). */
   accent?: string
+  /** Override for the body stroke color while active (defaults to ink) —
+   * e.g. tint the whole robot to match the system it embodies. */
+  tint?: string
   /** One-shot stumble-and-recover — pair with a WindGust. */
   stumbling?: boolean
   /**
@@ -79,6 +82,7 @@ export function RobotDancer({
   move = 'disco',
   active,
   accent,
+  tint,
   stumbling = false,
   variant = 'default',
 }: RobotDancerProps) {
@@ -283,7 +287,7 @@ export function RobotDancer({
     anim.phase !== 'idle' &&
     (anim.move === 'sidewiggle' || anim.from === 'sidewiggle')
   const ghost = variant === 'ghost'
-  const stroke = active ? 'var(--diagram-ink)' : 'var(--diagram-line)'
+  const stroke = active ? (tint ?? 'var(--diagram-ink)') : 'var(--diagram-line)'
   const fill = active ? 'var(--diagram-surface)' : 'var(--diagram-bg)'
   const light = active
     ? (accent ?? 'var(--diagram-accent-action)')

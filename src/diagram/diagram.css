@@ -297,6 +297,23 @@
   50%      { opacity: 0.5; }
 }
 
+/* Tap ripple: expanding rings where a device gets clicked. */
+.click-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+}
+
+.click-ring.tapping {
+  animation: clickRing 1.3s ease-out var(--d, 0s) infinite;
+}
+
+@keyframes clickRing {
+  0%   { transform: scale(0.2); opacity: 0.9; }
+  70%  { transform: scale(1); opacity: 0; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
 /* --- wifi waves -------------------------------------------------------------- */
 
 .wifi .wifi-arc,

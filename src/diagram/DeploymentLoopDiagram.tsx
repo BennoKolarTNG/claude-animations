@@ -14,17 +14,18 @@ import type { CSSVarStyle, DiagramTheme } from './diagramTokens'
 const STREAM_BLUE = '#4f8cff'
 const LATENT = '#8b5cf6'
 const ACTION = '#f59e0b'
-const SENSOR = '#14b8a6'
+const TEAL = '#14b8a6'
 
 const PHASES = [
-  { name: 'host', duration: 2200, caption: 'The G1’s own Jetson hosts both runtimes: the website and SONIC itself.' },
-  { name: 'serve', duration: 2400, caption: 'Through an external router, every browser on the network gets the site — notebook or phone.' },
-  { name: 'pick', duration: 2000, caption: 'Pick a dance on any device…' },
-  { name: 'stream', duration: 2400, caption: '…and it streams back through the router into the website runtime…' },
-  { name: 'decode', duration: 2400, caption: '…which feeds SONIC frame by frame: latents in, joint commands out.' },
-  { name: 'loop', duration: 3000, caption: 'On the robot, SONIC and the joints close a 50 Hz feedback loop.' },
+  { name: 'host', duration: 2200, caption: 'Website and SONIC run together on the G1’s own Jetson — robot and server are one thing.' },
+  { name: 'network', duration: 2200, caption: 'One network: the robot, an external router, a notebook, a phone.' },
+  { name: 'pick', duration: 1800, caption: 'Tap a dance…' },
+  { name: 'stream', duration: 2200, caption: '…the request travels to the router, which relays the signal…' },
+  { name: 'toServer', duration: 2200, caption: '…on to the website runtime, back on the robot.' },
+  { name: 'decode', duration: 2200, caption: 'The website hands it across the gap to SONIC, frame by frame.' },
+  { name: 'loop', duration: 3000, caption: 'SONIC feeds the joints over one fast line — a 50 Hz loop.' },
   { name: 'shove', duration: 2800, caption: 'Shove it — the loop recovers before you can blink.' },
-  { name: 'on', duration: 2200, caption: 'The dance goes on.' },
+  { name: 'on', duration: 2000, caption: 'The dance goes on.' },
   { name: 'reset', duration: 1000, caption: 'Next motion?' },
 ] as const
 
@@ -34,15 +35,16 @@ const PHASE_INDEX = Object.fromEntries(
 ) as Record<PhaseName, number>
 
 // --- layout constants --------------------------------------------------------
-const LAPTOP = { x: 138, ground: 218 }
-const PHONE = { x: 138, y: 330 }
-const ROUTER = { x: 330, y: 268 }
-const PANEL = { x: 442, y: 78, w: 258, h: 152 }
-const ROW1 = { y: 112, h: 48 }
-const ROW2 = { y: 168, h: 52 }
-const ROBOT = { x: 806, ground: 362, scale: 1.45 }
-const TORSO_BOX = { x: ROBOT.x - 26, y: 296, w: 52, h: 52 }
-const LOOP = { x: 712, y: 292, r: 15 }
+const LAPTOP = { x: 150, ground: 212 }
+const PHONE = { x: 150, y: 330 }
+const ROUTER = { x: 330, y: 262 }
+const PANEL = { x: 510, y: 60, w: 310, h: 178 }
+const WEB = { y: 96, h: 52 }
+const SONIC = { y: 168, h: 56 }
+const GAP_Y = { from: WEB.y + WEB.h, to: SONIC.y }
+const ROBOT = { x: 830, ground: 386, scale: 1.7 }
+const HEAD_TOP = ROBOT.ground - 75 * ROBOT.scale
+const LOOP = { x: 884, y: 262, r: 14 }
 const LABEL_Y = 408
 
 export interface DeploymentLoopDiagramProps {
@@ -98,16 +100,32 @@ function Router({ active }: { active: boolean }) {
   )
 }
 
+/** A quiet dotted network link. */
+function NetLink({ d, on }: { d: string; on: boolean }) {
+  return (
+    <path
+      d={d}
+      fill="none"
+      stroke="var(--diagram-muted)"
+      strokeWidth={1.3}
+      strokeDasharray="2 5"
+      strokeLinecap="round"
+      className="stage"
+      style={{ opacity: on ? 0.65 : 0 }}
+    />
+  )
+}
+
 /**
- * The live deployment network: the G1's Jetson hosts BOTH the motion
- * website and the SONIC runtime (shown as a zoom-callout out of the
- * robot's torso). An external router serves the site to a notebook and
- * a phone; the picked motion streams back through the router into the
- * website runtime, into SONIC, and out to the joints in a 50 Hz
- * feedback loop — shove included.
+ * The deployment network: notebook and phone sit on dotted network
+ * links to an external router; a tap sends the request along the links
+ * to the router, which relays it to the website runtime on the G1's
+ * Jetson — teal, like the robot itself, because they are one machine.
+ * The website hands frames across a small gap to SONIC, and SONIC feeds
+ * the joints over a single fast teal line with a spinning 50 Hz loop.
  */
 export function DeploymentLoopDiagram({
-  title = 'Deployment network: the robot’s Jetson hosts the motion website and the SONIC runtime; an external router serves the site to a notebook and a phone on the same network; the chosen motion streams back through the router into the website runtime, then SONIC, then the joints, closing a 50 Hz feedback loop that recovers from a shove.',
+  title = 'Deployment network: notebook and phone connect over dotted network links to an external router; a tap streams the chosen dance to the website runtime hosted on the robot’s Jetson, across a gap into SONIC, and down one fast teal 50 Hz line into the joints — recovering even from a shove.',
   showCaption = true,
   theme,
   className,
@@ -122,129 +140,146 @@ export function DeploymentLoopDiagram({
   const since = (n: PhaseName) =>
     staticMode || (index >= PHASE_INDEX[n] && phase !== 'reset')
 
-  const serving = since('serve')
+  const networked = since('network')
   const picking = since('pick')
-  const streaming = since('stream')
   const decoding = since('decode')
   const looping = since('loop')
 
   const robotMove: RobotMove = since('on') ? 'disco' : 'sidewiggle'
   const caption = staticMode
-    ? 'Robot-hosted website → router → any browser; picks stream back into SONIC and the joints.'
+    ? 'Tap on any device → router → website on the G1 → SONIC → joints, at 50 Hz.'
     : PHASES[index].caption
 
   return (
     <div ref={rootRef} className={className}>
       <DiagramFrame
         title={title}
-        viewBox="0 52 960 372"
+        viewBox="0 46 960 380"
         theme={theme}
         caption={showCaption ? caption : undefined}
         captionKey={caption}
       >
-        {/* --- the on-board panel: a zoom INTO the robot ----------------------- */}
-        {/* lens lines: this panel lives inside the torso */}
-        <path d={`M ${PANEL.x + PANEL.w} ${PANEL.y + 6} L ${TORSO_BOX.x} ${TORSO_BOX.y}`} stroke="var(--diagram-muted)" strokeWidth={1.2} strokeDasharray="4 4" opacity={0.7} />
-        <path d={`M ${PANEL.x + PANEL.w} ${PANEL.y + PANEL.h - 6} L ${TORSO_BOX.x} ${TORSO_BOX.y + TORSO_BOX.h}`} stroke="var(--diagram-muted)" strokeWidth={1.2} strokeDasharray="4 4" opacity={0.7} />
-        <rect x={TORSO_BOX.x} y={TORSO_BOX.y} width={TORSO_BOX.w} height={TORSO_BOX.h} rx={9} fill="none" stroke="var(--diagram-muted)" strokeWidth={1.3} strokeDasharray="4 4" opacity={0.85} />
+        {/* --- the network fabric: quiet dotted links -------------------------- */}
+        <NetLink d={`M ${LAPTOP.x + 58} ${LAPTOP.ground - 40} L ${ROUTER.x - 36} ${ROUTER.y - 18}`} on={networked} />
+        <NetLink d={`M ${PHONE.x + 24} ${PHONE.y - 6} L ${ROUTER.x - 36} ${ROUTER.y + 2}`} on={networked} />
+        <NetLink d={`M ${ROUTER.x + 30} ${ROUTER.y - 26} L ${PANEL.x - 6} ${WEB.y + 26}`} on={networked} />
 
-        <rect x={PANEL.x} y={PANEL.y} width={PANEL.w} height={PANEL.h} rx={13} fill="var(--diagram-surface)" stroke={since('host') ? 'var(--diagram-ink)' : 'var(--diagram-line)'} strokeWidth={1.5} style={{ transition: 'stroke 600ms ease' }} />
-        <text x={PANEL.x + 14} y={PANEL.y + 24} fontFamily="var(--diagram-font-label)" fontSize={10.5} fontWeight={700} letterSpacing="0.1em" fill="var(--diagram-ink)">
+        {/* --- the server on the robot: one teal machine ------------------------ */}
+        <rect x={PANEL.x} y={PANEL.y} width={PANEL.w} height={PANEL.h} rx={13} fill="var(--diagram-surface)" stroke={TEAL} strokeWidth={1.8} />
+        <text x={PANEL.x + 14} y={PANEL.y + 24} fontFamily="var(--diagram-font-label)" fontSize={10.5} fontWeight={700} letterSpacing="0.1em" fill={TEAL}>
           ON THE G1 · JETSON
         </text>
         {/* Jetson chip glyph */}
-        <rect x={PANEL.x + PANEL.w - 44} y={PANEL.y + 10} width={30} height={20} rx={4} fill="var(--diagram-bg)" stroke="var(--diagram-muted)" strokeWidth={1.3} />
+        <rect x={PANEL.x + PANEL.w - 44} y={PANEL.y + 10} width={30} height={20} rx={4} fill="var(--diagram-bg)" stroke={TEAL} strokeWidth={1.3} />
         {[0, 1, 2].map((i) => (
           <g key={i}>
-            <line x1={PANEL.x + PANEL.w - 38 + i * 9} y1={PANEL.y + 7} x2={PANEL.x + PANEL.w - 38 + i * 9} y2={PANEL.y + 10} stroke="var(--diagram-muted)" strokeWidth={1.2} />
-            <line x1={PANEL.x + PANEL.w - 38 + i * 9} y1={PANEL.y + 30} x2={PANEL.x + PANEL.w - 38 + i * 9} y2={PANEL.y + 33} stroke="var(--diagram-muted)" strokeWidth={1.2} />
+            <line x1={PANEL.x + PANEL.w - 38 + i * 9} y1={PANEL.y + 7} x2={PANEL.x + PANEL.w - 38 + i * 9} y2={PANEL.y + 10} stroke={TEAL} strokeWidth={1.2} />
+            <line x1={PANEL.x + PANEL.w - 38 + i * 9} y1={PANEL.y + 30} x2={PANEL.x + PANEL.w - 38 + i * 9} y2={PANEL.y + 33} stroke={TEAL} strokeWidth={1.2} />
           </g>
         ))}
 
-        {/* runtime 1: the website */}
-        <rect x={PANEL.x + 12} y={ROW1.y} width={PANEL.w - 24} height={ROW1.h} rx={9} fill="var(--diagram-bg)" stroke={streaming ? STREAM_BLUE : 'var(--diagram-line)'} strokeWidth={1.4} style={{ transition: 'stroke 500ms ease' }} />
-        <text x={PANEL.x + 24} y={ROW1.y + 20} fontFamily="var(--diagram-font-label)" fontSize={11} fontWeight={700} fill="var(--diagram-ink)">
+        {/* website runtime */}
+        <rect x={PANEL.x + 14} y={WEB.y} width={PANEL.w - 28} height={WEB.h} rx={9} fill="var(--diagram-bg)" stroke={since('toServer') ? STREAM_BLUE : 'var(--diagram-line)'} strokeWidth={1.4} style={{ transition: 'stroke 500ms ease' }} />
+        <text x={PANEL.x + 26} y={WEB.y + 21} fontFamily="var(--diagram-font-label)" fontSize={11} fontWeight={700} fill="var(--diagram-ink)">
           WEBSITE RUNTIME
         </text>
-        <text x={PANEL.x + 24} y={ROW1.y + 36} className="diagram-sublabel">
+        <text x={PANEL.x + 26} y={WEB.y + 37} className="diagram-sublabel">
           serves the motion library
         </text>
         {[0, 1, 2, 3].map((i) => (
-          <rect key={i} x={PANEL.x + PANEL.w - 82 + i * 16} y={ROW1.y + 14} width={12} height={12} rx={2.5} fill={i === 1 ? STREAM_BLUE : 'var(--diagram-line)'} opacity={i === 1 ? 0.9 : 0.4} className={i === 1 && streaming && !staticMode ? 'laptop-tile-playing' : undefined} />
+          <rect key={i} x={PANEL.x + PANEL.w - 92 + i * 17} y={WEB.y + 16} width={13} height={13} rx={2.5} fill={i === 1 ? STREAM_BLUE : 'var(--diagram-line)'} opacity={i === 1 ? 0.9 : 0.4} className={i === 1 && since('toServer') && !staticMode ? 'laptop-tile-playing' : undefined} />
         ))}
 
-        {/* frames flowing website → SONIC */}
-        <FlowParticles x={PANEL.x + 60} y={ROW1.y + ROW1.h + 2} dx={0.001} y2={ROW2.y - 2} spreadStart={30} spreadEnd={30} count={4} duration={0.6} radius={1.9} shape="square" color={STREAM_BLUE} active={decoding && !staticMode} />
+        {/* the gap: frames hop from website to SONIC */}
+        <FlowParticles x={PANEL.x + 40} y={GAP_Y.from + 2} dx={0.001} y2={GAP_Y.to - 2} spreadStart={0} spreadEnd={0} count={1} duration={0.5} radius={2} shape="square" color={STREAM_BLUE} active={decoding && !staticMode} />
+        <FlowParticles x={PANEL.x + 120} y={GAP_Y.from + 2} dx={0.001} y2={GAP_Y.to - 2} spreadStart={0} spreadEnd={0} count={1} duration={0.55} radius={2} shape="square" color={STREAM_BLUE} active={decoding && !staticMode} />
+        <FlowParticles x={PANEL.x + 200} y={GAP_Y.from + 2} dx={0.001} y2={GAP_Y.to - 2} spreadStart={0} spreadEnd={0} count={1} duration={0.45} radius={2} shape="square" color={STREAM_BLUE} active={decoding && !staticMode} />
+        <FlowParticles x={PANEL.x + 272} y={GAP_Y.from + 2} dx={0.001} y2={GAP_Y.to - 2} spreadStart={0} spreadEnd={0} count={1} duration={0.6} radius={2} shape="square" color={STREAM_BLUE} active={decoding && !staticMode} />
 
-        {/* runtime 2: SONIC */}
-        <rect x={PANEL.x + 12} y={ROW2.y} width={PANEL.w - 24} height={ROW2.h} rx={9} fill="var(--diagram-bg)" stroke={decoding ? LATENT : 'var(--diagram-line)'} strokeWidth={1.4} style={{ transition: 'stroke 500ms ease' }} />
-        <text x={PANEL.x + 24} y={ROW2.y + 21} fontFamily="var(--diagram-font-label)" fontSize={11} fontWeight={700} fill="var(--diagram-ink)">
+        {/* SONIC runtime */}
+        <rect x={PANEL.x + 14} y={SONIC.y} width={PANEL.w - 28} height={SONIC.h} rx={9} fill="var(--diagram-bg)" stroke={decoding ? TEAL : 'var(--diagram-line)'} strokeWidth={1.4} style={{ transition: 'stroke 500ms ease' }} />
+        <text x={PANEL.x + 26} y={SONIC.y + 23} fontFamily="var(--diagram-font-label)" fontSize={11} fontWeight={700} fill="var(--diagram-ink)">
           SONIC RUNTIME
         </text>
-        <LatentRack x={PANEL.x + 138} y={ROW2.y + 27} cells={6} cellSize={11} gap={3} color={LATENT} mode={decoding && !staticMode ? 'live' : staticMode ? 'hold' : 'idle'} pattern={[0, 2, 5]} />
+        <LatentRack x={PANEL.x + 158} y={SONIC.y + 28} cells={7} cellSize={12} gap={3} color={LATENT} mode={decoding && !staticMode ? 'live' : staticMode ? 'hold' : 'idle'} pattern={[0, 2, 4, 6]} />
 
-        {/* --- clients: notebook + phone, same site, same network -------------- */}
-        <line x1={70} y1={LAPTOP.ground} x2={216} y2={LAPTOP.ground} stroke="var(--diagram-line)" strokeWidth={1.5} strokeLinecap="round" />
+        {/* --- clients ----------------------------------------------------------- */}
+        <line x1={82} y1={LAPTOP.ground} x2={228} y2={LAPTOP.ground} stroke="var(--diagram-line)" strokeWidth={1.5} strokeLinecap="round" />
         <g transform={`translate(${LAPTOP.x} ${LAPTOP.ground}) scale(0.85)`}>
-          <Laptop selected={5} accent={STREAM_BLUE} playing={picking && !staticMode} active={serving} />
+          <Laptop selected={5} accent={STREAM_BLUE} playing={picking && !staticMode} active={networked} />
         </g>
         <text className="diagram-sublabel" x={LAPTOP.x} y={LAPTOP.ground + 15} textAnchor="middle">
           notebook
         </text>
         <g transform={`translate(${PHONE.x} ${PHONE.y})`}>
-          <Phone playing={picking && !staticMode} active={serving} />
+          <Phone playing={picking && !staticMode} active={networked} />
         </g>
         <text className="diagram-sublabel" x={PHONE.x} y={PHONE.y + 48} textAnchor="middle">
           phone · same network
         </text>
+        {/* the tap */}
+        <circle
+          className={`click-ring${at('pick') ? ' tapping' : ''}`}
+          cx={138}
+          cy={166}
+          r={15}
+          fill="none"
+          stroke={STREAM_BLUE}
+          strokeWidth={2.2}
+        />
+        <circle cx={138} cy={166} r={3} fill={STREAM_BLUE} className="stage" style={{ opacity: at('pick') ? 0.9 : 0 }} />
 
-        {/* --- the external router --------------------------------------------- */}
+        {/* --- the router --------------------------------------------------------- */}
         <g transform={`translate(${ROUTER.x} ${ROUTER.y})`}>
-          <Router active={serving} />
+          <Router active={networked} />
         </g>
         <text className="diagram-sublabel" x={ROUTER.x} y={ROUTER.y + 30} textAnchor="middle">
           external router
         </text>
-        {/* wifi both ways */}
+        {/* the router emits when relaying */}
         <g transform={`translate(${ROUTER.x - 44} ${ROUTER.y - 24}) scale(-1 1)`}>
-          <WifiWaves x={0} y={0} color={STREAM_BLUE} active={serving && !staticMode} count={2} />
+          <WifiWaves x={0} y={0} color={STREAM_BLUE} active={(at('stream') || at('toServer')) && !staticMode} count={2} />
         </g>
-        <WifiWaves x={ROUTER.x + 44} y={ROUTER.y - 24} color={STREAM_BLUE} active={serving && !staticMode} count={2} />
+        <WifiWaves x={ROUTER.x + 44} y={ROUTER.y - 24} color={STREAM_BLUE} active={(at('stream') || at('toServer')) && !staticMode} count={2} />
 
-        {/* hosting: website runtime → router (the site being served) */}
-        <path d={`M ${PANEL.x - 4} ${ROW1.y + 24} C 402 148, 366 190, ${ROUTER.x + 12} ${ROUTER.y - 40}`} fill="none" stroke={STREAM_BLUE} strokeWidth={1.3} strokeDasharray="1 5" strokeLinecap="round" className="stage" style={{ opacity: serving ? 0.55 : 0 }} />
-        <FlowParticles x={PANEL.x - 6} y={ROW1.y + 22} y2={ROUTER.y - 38} dx={-(PANEL.x - 18 - ROUTER.x)} spreadStart={5} spreadEnd={4} count={4} duration={0.9} radius={2} color={STREAM_BLUE} active={serving && !staticMode && !streaming} />
-        {/* router → clients */}
-        <FlowParticles x={ROUTER.x - 40} y={ROUTER.y - 18} y2={LAPTOP.ground - 46} dx={-(ROUTER.x - 40 - LAPTOP.x - 60)} spreadStart={4} spreadEnd={8} count={4} duration={0.8} radius={2} color={STREAM_BLUE} active={serving && !staticMode && !streaming} />
-        <FlowParticles x={ROUTER.x - 40} y={ROUTER.y + 2} y2={PHONE.y} dx={-(ROUTER.x - 40 - PHONE.x - 24)} spreadStart={4} spreadEnd={6} count={4} duration={0.8} radius={2} color={STREAM_BLUE} active={serving && !staticMode && !streaming} />
+        {/* the request: device → router → website, along the dotted links */}
+        <FlowParticles x={LAPTOP.x + 56} y={LAPTOP.ground - 40} y2={ROUTER.y - 19} dx={ROUTER.x - 38 - LAPTOP.x - 56} spreadStart={2} spreadEnd={2} count={5} duration={0.7} color={STREAM_BLUE} active={since('stream') && !staticMode} />
+        <FlowParticles x={ROUTER.x + 32} y={ROUTER.y - 27} y2={WEB.y + 25} dx={PANEL.x - 8 - ROUTER.x - 32} spreadStart={2} spreadEnd={2} count={5} duration={0.7} color={STREAM_BLUE} active={since('toServer') && !staticMode} />
 
-        {/* streaming back: client → router → website runtime */}
-        <FlowParticles x={LAPTOP.x + 62} y={LAPTOP.ground - 42} y2={ROUTER.y - 20} dx={ROUTER.x - 42 - LAPTOP.x - 62} spreadStart={6} spreadEnd={4} count={5} duration={0.7} color={STREAM_BLUE} active={streaming && !staticMode} />
-        <FlowParticles x={ROUTER.x + 14} y={ROUTER.y - 38} y2={ROW1.y + 22} dx={PANEL.x - 8 - ROUTER.x - 14} spreadStart={4} spreadEnd={4} count={5} duration={0.7} color={STREAM_BLUE} active={streaming && !staticMode} />
-
-        {/* --- SONIC ↔ joints: the on-robot feedback loop ----------------------- */}
-        <path d={`M ${PANEL.x + PANEL.w - 40} ${PANEL.y + PANEL.h + 4} C 680 260, 720 280, ${TORSO_BOX.x - 4} ${TORSO_BOX.y + 30}`} fill="none" stroke={ACTION} strokeWidth={1.4} strokeLinecap="round" className="stage" style={{ opacity: looping ? 0.55 : 0 }} />
-        <FlowParticles x={PANEL.x + PANEL.w - 42} y={PANEL.y + PANEL.h + 6} y2={TORSO_BOX.y + 28} dx={TORSO_BOX.x - PANEL.x - PANEL.w + 34} spreadStart={4} spreadEnd={3} count={7} duration={0.55} color={ACTION} active={looping && !staticMode} />
-        <path d={`M ${TORSO_BOX.x - 2} ${TORSO_BOX.y + 44} C 700 330, 660 290, ${PANEL.x + PANEL.w - 70} ${PANEL.y + PANEL.h + 6}`} fill="none" stroke={SENSOR} strokeWidth={1.4} strokeDasharray="4 4" strokeLinecap="round" className="stage" style={{ opacity: looping ? 0.55 : 0 }} />
-        <FlowParticles x={TORSO_BOX.x - 4} y={TORSO_BOX.y + 42} y2={PANEL.y + PANEL.h + 10} dx={-(TORSO_BOX.x - 4 - PANEL.x - PANEL.w + 72)} spreadStart={3} spreadEnd={3} count={6} duration={0.55} radius={1.9} color={SENSOR} active={looping && !staticMode} />
+        {/* --- one machine: straight dotted tether + one teal data line ---------- */}
+        <path d={`M ${ROBOT.x - 12} ${HEAD_TOP - 4} L ${ROBOT.x - 12} ${PANEL.y + PANEL.h + 4}`} stroke="var(--diagram-muted)" strokeWidth={1.3} strokeDasharray="2 5" strokeLinecap="round" opacity={0.75} />
+        <path
+          d={`M ${PANEL.x + PANEL.w - 24} ${SONIC.y + SONIC.h + 2} C ${PANEL.x + PANEL.w + 14} 262, ${ROBOT.x + 22} 274, ${ROBOT.x + 10} ${ROBOT.ground - 62}`}
+          fill="none"
+          stroke={TEAL}
+          strokeWidth={1.6}
+          strokeLinecap="round"
+          className="stage"
+          style={{ opacity: looping ? 0.7 : 0.25 }}
+        />
+        {/* fast traffic both ways on the one line */}
+        <FlowParticles x={PANEL.x + PANEL.w - 22} y={SONIC.y + SONIC.h + 8} y2={ROBOT.ground - 66} dx={ROBOT.x + 8 - PANEL.x - PANEL.w + 18} spreadStart={3} spreadEnd={3} count={7} duration={0.5} radius={2.1} color={TEAL} active={looping && !staticMode} />
+        <g opacity={0.55}>
+          <FlowParticles x={ROBOT.x + 4} y={ROBOT.ground - 60} y2={SONIC.y + SONIC.h + 14} dx={-(ROBOT.x - PANEL.x - PANEL.w + 18)} spreadStart={3} spreadEnd={3} count={6} duration={0.5} radius={1.8} color={TEAL} active={looping && !staticMode} />
+        </g>
         <g className="stage" style={{ transform: `translate(${LOOP.x}px, ${LOOP.y}px) scale(${looping || staticMode ? 1 : 0.6})`, opacity: looping ? 1 : staticMode ? 0.5 : 0 }}>
-          <TrainingLoop radius={LOOP.r} spinning={looping && !staticMode} strokeWidth={4} color={SENSOR} />
+          <TrainingLoop radius={LOOP.r} spinning={looping && !staticMode} strokeWidth={4} color={TEAL} />
         </g>
-        <text className="math-label" x={LOOP.x} y={LOOP.y + 38} textAnchor="middle" style={{ opacity: looping ? 1 : 0.3, fill: SENSOR, transition: 'opacity 600ms ease' } as CSSVarStyle}>
+        <text className="math-label" x={LOOP.x + 2} y={LOOP.y + 36} textAnchor="middle" style={{ opacity: looping ? 1 : 0.3, fill: TEAL, transition: 'opacity 600ms ease' } as CSSVarStyle}>
           50<tspan className="math-sub" dy={3}> Hz</tspan>
         </text>
 
-        {/* --- the robot, front and center-right, bigger ------------------------- */}
-        <line x1={690} y1={ROBOT.ground} x2={946} y2={ROBOT.ground} stroke="var(--diagram-line)" strokeWidth={1.5} strokeLinecap="round" />
+        {/* --- the robot: big, teal, one thing with its server -------------------- */}
+        <line x1={700} y1={ROBOT.ground} x2={950} y2={ROBOT.ground} stroke="var(--diagram-line)" strokeWidth={1.5} strokeLinecap="round" />
         <g transform={`translate(${ROBOT.x} ${ROBOT.ground}) scale(${ROBOT.scale})`}>
-          <RobotDancer dancing={!staticMode && looping} move={robotMove} active={decoding} accent={ACTION} stumbling={at('shove')} />
+          <RobotDancer dancing={!staticMode && looping} move={robotMove} active tint={TEAL} accent={ACTION} stumbling={at('shove')} />
         </g>
-        <WindGust x={906} y={ROBOT.ground - 96} active={at('shove')} />
+        <WindGust x={926} y={ROBOT.ground - 116} active={at('shove')} />
 
-        {/* --- labels -------------------------------------------------------------- */}
-        <StageLabel x={LAPTOP.x} y={LABEL_Y} text="any browser" active={at('serve') || at('pick')} accent={STREAM_BLUE} />
+        {/* --- labels --------------------------------------------------------------- */}
+        <StageLabel x={LAPTOP.x} y={LABEL_Y} text="any browser" active={at('network') || at('pick')} accent={STREAM_BLUE} />
         <StageLabel x={ROUTER.x} y={LABEL_Y} text="router" active={at('stream')} accent={STREAM_BLUE} />
-        <StageLabel x={PANEL.x + PANEL.w / 2} y={LABEL_Y} text="hosted on the g1" active={at('host') || at('decode')} accent={LATENT} />
+        <StageLabel x={PANEL.x + PANEL.w / 2 - 40} y={LABEL_Y} text="hosted on the g1" active={at('host') || at('toServer') || at('decode')} accent={TEAL} />
         <StageLabel x={ROBOT.x} y={LABEL_Y} text="dance" active={at('loop') || at('shove') || at('on')} accent={ACTION} />
       </DiagramFrame>
     </div>
