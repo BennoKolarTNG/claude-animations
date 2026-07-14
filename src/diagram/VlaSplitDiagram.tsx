@@ -284,14 +284,14 @@ export function VlaSplitDiagram({
             are ONE space — the ribbon runs square-to-square, cell strip
             to cell column, through both blocks' walls */}
         <path
-          d={`M ${S1.x + 108} ${S1.y + 40} C 560 164, 704 216, ${RACK.x - 8} ${RACK.y + 6} L ${RACK.x + 8} ${RACK.y + 6} C 714 244, 576 204, ${S1.x + 108} ${S1.y + 54} Z`}
+          d={`M ${S1.x + 108} ${S1.y + 40} C 500 154, ${RACK.x + 8} 166, ${RACK.x + 8} ${RACK.y + 12} L ${RACK.x - 8} ${RACK.y + 12} C ${RACK.x - 8} 174, 500 170, ${S1.x + 108} ${S1.y + 54} Z`}
           fill={LATENT}
           stroke="none"
           className="stage"
           style={{ opacity: directOn ? 0.09 : 0 }}
         />
         <path
-          d={`M ${S1.x + 110} ${S1.y + 47} C 570 182, 708 226, ${RACK.x} ${RACK.y + 12}`}
+          d={`M ${S1.x + 110} ${S1.y + 47} C 500 162, ${RACK.x} 170, ${RACK.x} ${RACK.y + 12}`}
           fill="none"
           stroke={LATENT}
           strokeWidth={1.7}
@@ -300,12 +300,13 @@ export function VlaSplitDiagram({
           className="stage"
           style={{ opacity: directOn ? 0.9 : 0 }}
         />
-        <text className="math-label" x={575} y={178} textAnchor="middle" style={{ opacity: directOn ? 1 : 0, fill: LATENT, transition: 'opacity 500ms ease' }}>
+        <text className="math-label" x={555} y={168} textAnchor="middle" style={{ opacity: directOn ? 1 : 0, fill: LATENT, transition: 'opacity 500ms ease' }}>
           z<tspan className="math-sub" dy={3}>t</tspan>
           <tspan dy={-3}> … </tspan>z<tspan className="math-sub" dy={3}>t+H</tspan>
         </text>
-        <FlowParticles x={S1.x + 112} y={S1.y + 44} y2={190} dx={572 - S1.x - 114} spreadStart={3} spreadEnd={3} count={3} duration={0.55} radius={2} shape="square" color={LATENT} active={directOn && !staticMode} />
-        <FlowParticles x={576} y={190} y2={RACK.y + 10} dx={RACK.x - 4 - 576} spreadStart={3} spreadEnd={3} count={3} duration={0.55} radius={2} shape="square" color={LATENT} active={directOn && !staticMode} />
+        <FlowParticles x={S1.x + 112} y={S1.y + 44} y2={184} dx={565 - S1.x - 114} spreadStart={3} spreadEnd={3} count={3} duration={0.5} radius={2} shape="square" color={LATENT} active={directOn && !staticMode} />
+        <FlowParticles x={570} y={184} y2={202} dx={RACK.x - 12 - 570} spreadStart={3} spreadEnd={3} count={3} duration={0.5} radius={2} shape="square" color={LATENT} active={directOn && !staticMode} />
+        <FlowParticles x={RACK.x} y={214} dx={0.001} y2={RACK.y + 8} spreadStart={2} spreadEnd={2} count={3} duration={0.5} radius={2} shape="square" color={LATENT} active={directOn && !staticMode} />
 
         {/* lower stream: planner → encoder (absorbed in direct mode) */}
         <FlowParticles x={PLANNER.x + PLANNER.w + 6} y={BOT_Y} y2={HENC.y + 20} dx={HENC.x - 4 - PLANNER.x - PLANNER.w - 10} spreadStart={3} spreadEnd={3} count={5} duration={0.7} radius={2} color={PLANNER_BLUE} active={since('hybrid') && !directOn && !staticMode} />
@@ -317,7 +318,7 @@ export function VlaSplitDiagram({
             SONIC
           </text>
           <text x={SONIC.x + 16} y={SONIC.y + 42} fontFamily="var(--diagram-font-label)" fontSize={9} fontWeight={600} letterSpacing="0.05em" fill={LATENT}>
-            WHOLE-BODY · 50 HZ
+            50 HZ
           </text>
           <LatentRack x={RACK.x} y={RACK.y} cells={7} cellSize={13} gap={3} color={LATENT} mode={since('hybrid') && !staticMode ? 'live' : staticMode ? 'hold' : 'idle'} pattern={[0, 2, 4, 6]} vertical />
         </g>
