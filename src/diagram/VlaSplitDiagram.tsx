@@ -190,7 +190,7 @@ export function VlaSplitDiagram({
         <FlowParticles x={IN_X + STATE.w / 2 + 4} y={STATE.y} y2={S2.y + 46} dx={GROOT.x - IN_X - STATE.w / 2 - 10} spreadStart={4} spreadEnd={3} count={3} duration={0.85} radius={2} shape="square" color={STATE_RED} active={since('system2') && !staticMode} />
 
         {/* ================= GR00T: two systems, one model ================= */}
-        <g className="stage" style={focus('system2', 'system1')}>
+        <g className="stage" style={focus('system2', 'system1', 'direct')}>
           <rect x={GROOT.x} y={GROOT.y} width={GROOT.w} height={GROOT.h} rx={13} fill="var(--diagram-surface)" stroke={since('system2') ? 'var(--diagram-ink)' : 'var(--diagram-line)'} strokeWidth={1.5} style={{ transition: 'stroke 600ms ease' }} />
           <text x={GROOT.x + 14} y={GROOT.y + 24} fontFamily="var(--diagram-font-label)" fontSize={13.5} fontWeight={700} fill="var(--diagram-ink)">
             GR00T
@@ -210,31 +210,19 @@ export function VlaSplitDiagram({
         </g>
 
         {/* ================= the action chunk, below GR00T =================
-            In the classic mode it holds upper-body actions; once finetuned,
-            the SAME head emits whole-body latent tokens instead. */}
-        <g className="stage" style={focus('system1', 'hybrid', 'decode', 'direct')}>
-          <rect x={CHUNK.x} y={CHUNK.y} width={CHUNK.w} height={CHUNK.h} rx={10} fill="var(--diagram-surface)" stroke={directOn && !staticMode ? LATENT : S1_TEAL} strokeWidth={1.5} strokeDasharray="6 4" style={{ transition: 'stroke 600ms ease' }} />
-          <g className="stage" style={{ opacity: directOn && !staticMode ? 0 : 1 }}>
-            <text className="math-label" x={CHUNK.x + 52} y={CHUNK.y + 24} textAnchor="middle">
-              a<tspan className="math-sub" dy={3}>t</tspan>
-              <tspan dy={-3}> … </tspan>a<tspan className="math-sub" dy={3}>t+H</tspan>
-            </text>
-            <text className="diagram-sublabel" x={CHUNK.x + 12} y={CHUNK.y + 42}>
-              upper-body actions
-            </text>
-          </g>
-          <g className="stage" style={{ opacity: directOn && !staticMode ? 1 : 0 }}>
-            <text className="math-label" x={CHUNK.x + 52} y={CHUNK.y + 24} textAnchor="middle" style={{ fill: LATENT }}>
-              z<tspan className="math-sub" dy={3}>t</tspan>
-              <tspan dy={-3}> … </tspan>z<tspan className="math-sub" dy={3}>t+H</tspan>
-            </text>
-            <text className="diagram-sublabel" x={CHUNK.x + 12} y={CHUNK.y + 42} style={{ fill: LATENT }}>
-              whole-body latents
-            </text>
-          </g>
+            Classic-path equipment: dims once the head emits latents. */}
+        <g className="stage" style={{ ...focus('system1', 'hybrid', 'decode'), opacity: directOn && !staticMode ? 0.3 : (focus('system1', 'hybrid', 'decode').opacity as number) }}>
+          <rect x={CHUNK.x} y={CHUNK.y} width={CHUNK.w} height={CHUNK.h} rx={10} fill="var(--diagram-surface)" stroke={S1_TEAL} strokeWidth={1.5} strokeDasharray="6 4" />
+          <text className="math-label" x={CHUNK.x + 52} y={CHUNK.y + 24} textAnchor="middle">
+            a<tspan className="math-sub" dy={3}>t</tspan>
+            <tspan dy={-3}> … </tspan>a<tspan className="math-sub" dy={3}>t+H</tspan>
+          </text>
+          <text className="diagram-sublabel" x={CHUNK.x + 12} y={CHUNK.y + 42}>
+            upper-body actions
+          </text>
         </g>
-        {/* System 1 → chunk */}
-        <FlowParticles x={GROOT.x + GROOT.w / 2 - 30} y={GROOT.y + GROOT.h + 4} dx={0.001} y2={CHUNK.y - 4} spreadStart={26} spreadEnd={26} count={3} duration={0.5} radius={2} shape="square" color={S1_TEAL} active={since('system1') && !staticMode} />
+        {/* System 1 → chunk (classic mode) */}
+        <FlowParticles x={GROOT.x + GROOT.w / 2 - 30} y={GROOT.y + GROOT.h + 4} dx={0.001} y2={CHUNK.y - 4} spreadStart={26} spreadEnd={26} count={3} duration={0.5} radius={2} shape="square" color={S1_TEAL} active={since('system1') && !directOn && !staticMode} />
 
         {/* ================= the kinematic planner (lower body) ============
             Absorbed once the latents are whole-body: dims in direct mode. */}
@@ -283,10 +271,10 @@ export function VlaSplitDiagram({
         {/* upper stream: chunk → teleop → encoder (classic) */}
         <FlowParticles x={CHUNK.x + CHUNK.w + 6} y={TOP_Y} dx={TELEOP.x - TELEOP.w / 2 - CHUNK.x - CHUNK.w - 12} spreadStart={3} spreadEnd={3} count={4} duration={0.65} radius={2} shape="square" color={S1_TEAL} active={teleopFlow} />
         <FlowParticles x={TELEOP.x + TELEOP.w / 2 + 4} y={TOP_Y} y2={HENC.y - 18} dx={HENC.x - 4 - TELEOP.x - TELEOP.w / 2} spreadStart={3} spreadEnd={3} count={3} duration={0.55} radius={2} shape="square" color={S1_TEAL} active={teleopFlow} />
-        {/* the bypass: whole-body latent tokens, up and over teleop AND the
-            hybrid encoder, straight into the latent rack */}
+        {/* the finetuned path: whole-body latent tokens straight from the
+            action head into the top edge of the latent bar */}
         <path
-          d={`M ${CHUNK.x + CHUNK.w + 6} ${TOP_Y - 4} Q 570 ${TOP_Y - 92}, ${RACK.x - 2} ${RACK.y - 8}`}
+          d={`M ${GROOT.x + GROOT.w + 4} ${S1.y + 32} C 580 200, 700 236, ${RACK.x} ${RACK.y - 6}`}
           fill="none"
           stroke={LATENT}
           strokeWidth={1.7}
@@ -295,8 +283,12 @@ export function VlaSplitDiagram({
           className="stage"
           style={{ opacity: directOn ? 0.9 : 0 }}
         />
-        <FlowParticles x={CHUNK.x + CHUNK.w + 8} y={TOP_Y - 8} y2={TOP_Y - 74} dx={570 - CHUNK.x - CHUNK.w - 12} spreadStart={3} spreadEnd={3} count={3} duration={0.5} radius={2} shape="square" color={LATENT} active={directOn && !staticMode} />
-        <FlowParticles x={574} y={TOP_Y - 74} y2={RACK.y - 10} dx={RACK.x - 6 - 574} spreadStart={3} spreadEnd={3} count={3} duration={0.5} radius={2} shape="square" color={LATENT} active={directOn && !staticMode} />
+        <text className="math-label" x={585} y={198} textAnchor="middle" style={{ opacity: directOn ? 1 : 0, fill: LATENT, transition: 'opacity 500ms ease' }}>
+          z<tspan className="math-sub" dy={3}>t</tspan>
+          <tspan dy={-3}> … </tspan>z<tspan className="math-sub" dy={3}>t+H</tspan>
+        </text>
+        <FlowParticles x={GROOT.x + GROOT.w + 6} y={S1.y + 30} y2={214} dx={585 - GROOT.x - GROOT.w - 10} spreadStart={3} spreadEnd={3} count={3} duration={0.55} radius={2} shape="square" color={LATENT} active={directOn && !staticMode} />
+        <FlowParticles x={590} y={214} y2={RACK.y - 8} dx={RACK.x - 4 - 590} spreadStart={3} spreadEnd={3} count={3} duration={0.55} radius={2} shape="square" color={LATENT} active={directOn && !staticMode} />
 
         {/* lower stream: planner → encoder (absorbed in direct mode) */}
         <FlowParticles x={PLANNER.x + PLANNER.w + 6} y={BOT_Y} y2={HENC.y + 20} dx={HENC.x - 4 - PLANNER.x - PLANNER.w - 10} spreadStart={3} spreadEnd={3} count={5} duration={0.7} radius={2} color={PLANNER_BLUE} active={since('hybrid') && !directOn && !staticMode} />
