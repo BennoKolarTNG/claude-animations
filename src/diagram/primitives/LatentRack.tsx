@@ -22,6 +22,8 @@ interface LatentRackProps {
   pattern?: number[]
   /** Stack the cells top-to-bottom instead of left-to-right. */
   vertical?: boolean
+  /** Draw the backing board (omit for bare cells embedded elsewhere). */
+  board?: boolean
 }
 
 /**
@@ -40,6 +42,7 @@ export function LatentRack({
   mode,
   pattern = [],
   vertical = false,
+  board = true,
 }: LatentRackProps) {
   const rowWidth = cells * (cellSize + gap) - gap
   const pad = 10
@@ -48,16 +51,18 @@ export function LatentRack({
 
   return (
     <g className={`latent-rack${mode === 'live' ? ' live' : ''}`} aria-hidden>
-      <rect
-        x={vertical ? x - boardW / 2 : x}
-        y={vertical ? y : y - boardH / 2}
-        width={boardW}
-        height={boardH}
-        rx={9}
-        fill="var(--diagram-surface)"
-        stroke="var(--diagram-line)"
-        strokeWidth={1.5}
-      />
+      {board && (
+        <rect
+          x={vertical ? x - boardW / 2 : x}
+          y={vertical ? y : y - boardH / 2}
+          width={boardW}
+          height={boardH}
+          rx={9}
+          fill="var(--diagram-surface)"
+          stroke="var(--diagram-line)"
+          strokeWidth={1.5}
+        />
+      )}
       {Array.from({ length: cells }, (_, i) => {
         const bright = pattern.includes(i)
         // In `live`, the inline opacity is the LOW value: each cell sits

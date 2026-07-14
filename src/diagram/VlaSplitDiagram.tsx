@@ -202,10 +202,19 @@ export function VlaSplitDiagram({
           </SubBlock>
           <line x1={GROOT.x + GROOT.w / 2} y1={S2.y + S2.h + 3} x2={GROOT.x + GROOT.w / 2} y2={S1.y - 3} stroke={S2_PINK} strokeWidth={1.6} strokeLinecap="round" opacity={since('system1') ? 0.8 : 0.25} style={{ transition: 'opacity 500ms ease' }} />
           <path d={`M ${GROOT.x + GROOT.w / 2 - 4} ${S1.y - 8} l 4 5 l 4 -5`} fill="none" stroke={S2_PINK} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" opacity={since('system1') ? 0.8 : 0.25} style={{ transition: 'opacity 500ms ease' }} />
-          <SubBlock x={S1.x} y={S1.y} w={S1.w} h={S1.h} title="SYSTEM 1" subtitle="ACTION HEAD · FAST" accent={S1_TEAL} active={since('system1')}>
-            {Array.from({ length: 8 }, (_, i) => (
-              <rect key={i} x={S1.x + 12 + i * 14} y={S1.y + 42} width={10} height={10} rx={2} fill={S1_TEAL} opacity={since('system1') ? 0.2 + i * 0.1 : 0.15} style={{ transition: `opacity 400ms ease ${i * 50}ms` }} />
-            ))}
+          <SubBlock x={S1.x} y={S1.y} w={S1.w} h={S1.h} title="SYSTEM 1" subtitle="ACTION HEAD · FAST" accent={directOn && !staticMode ? LATENT : S1_TEAL} active={since('system1')}>
+            {/* classic output: the denoising strip… */}
+            <g className="stage" style={{ opacity: directOn && !staticMode ? 0 : 1 }}>
+              {Array.from({ length: 8 }, (_, i) => (
+                <rect key={i} x={S1.x + 12 + i * 14} y={S1.y + 42} width={10} height={10} rx={2} fill={S1_TEAL} opacity={since('system1') ? 0.2 + i * 0.1 : 0.15} style={{ transition: `opacity 400ms ease ${i * 50}ms` }} />
+              ))}
+            </g>
+            {/* …which the finetune turns into SONIC's OWN latent cells:
+                same purple, same pattern, breathing in sync with the bar
+                (mounted on the same clock, revealed at direct). */}
+            <g className="stage" style={{ opacity: directOn && !staticMode ? 1 : staticMode ? 0.9 : 0 }}>
+              <LatentRack x={S1.x + 2} y={S1.y + 47} cells={7} cellSize={11} gap={3} color={LATENT} mode={since('hybrid') && !staticMode ? 'live' : staticMode ? 'hold' : 'idle'} pattern={[0, 2, 4, 6]} board={false} />
+            </g>
           </SubBlock>
         </g>
 
@@ -271,8 +280,15 @@ export function VlaSplitDiagram({
         {/* upper stream: chunk → teleop → encoder (classic) */}
         <FlowParticles x={CHUNK.x + CHUNK.w + 6} y={TOP_Y} dx={TELEOP.x - TELEOP.w / 2 - CHUNK.x - CHUNK.w - 12} spreadStart={3} spreadEnd={3} count={4} duration={0.65} radius={2} shape="square" color={S1_TEAL} active={teleopFlow} />
         <FlowParticles x={TELEOP.x + TELEOP.w / 2 + 4} y={TOP_Y} y2={HENC.y - 18} dx={HENC.x - 4 - TELEOP.x - TELEOP.w / 2} spreadStart={3} spreadEnd={3} count={3} duration={0.55} radius={2} shape="square" color={S1_TEAL} active={teleopFlow} />
-        {/* the finetuned path: whole-body latent tokens straight from the
-            action head into the top edge of the latent bar */}
+        {/* the finetuned path: the head's latent cells and SONIC's latent
+            bar are ONE space — a filled ribbon fully connects the two */}
+        <path
+          d={`M ${GROOT.x + GROOT.w + 2} ${S1.y + 16} C 580 184, 702 224, ${RACK.x - 11} ${RACK.y - 4} L ${RACK.x + 11} ${RACK.y - 4} C 710 250, 588 222, ${GROOT.x + GROOT.w + 2} ${S1.y + 48} Z`}
+          fill={LATENT}
+          stroke="none"
+          className="stage"
+          style={{ opacity: directOn ? 0.09 : 0 }}
+        />
         <path
           d={`M ${GROOT.x + GROOT.w + 4} ${S1.y + 32} C 580 200, 700 236, ${RACK.x} ${RACK.y - 6}`}
           fill="none"
