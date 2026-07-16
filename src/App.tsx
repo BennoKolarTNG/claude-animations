@@ -3,6 +3,7 @@ import { GeneralistMotionPolicyDiagram } from './diagram/GeneralistMotionPolicyD
 import { SonicArchitectureDiagram } from './diagram/SonicArchitectureDiagram'
 import { MotionExtractionDiagram } from './diagram/MotionExtractionDiagram'
 import { DeploymentLoopDiagram } from './diagram/DeploymentLoopDiagram'
+import { FullPipelineDiagram } from './diagram/FullPipelineDiagram'
 import { VlaSplitDiagram } from './diagram/VlaSplitDiagram'
 import { redTheme } from './diagram/diagramTokens'
 
@@ -85,6 +86,17 @@ export default function App() {
       </p>
 
       <MotionExtractionDiagram className="essay-figure" />
+
+      <p>
+        Now that the individual components exist, they wire together into one
+        uniform pipeline: a dance video goes through GENMO, where the skeleton
+        is pulled out of the pixels; the motion comes out as an SMPL file,
+        streams through SONIC&rsquo;s human encoder into the latent space, and
+        is decoded straight into the robot&rsquo;s
+        joints&thinsp;&mdash;&thinsp;the robot dances the dance it was shown.
+      </p>
+
+      <FullPipelineDiagram className="essay-figure" />
 
       <p>
         Deployment wires it all together: a motion-library web UI hosted on

@@ -4,10 +4,11 @@ import { SonicArchitectureDiagram } from './diagram/SonicArchitectureDiagram'
 import { VlaSplitDiagram } from './diagram/VlaSplitDiagram'
 import { DeploymentLoopDiagram } from './diagram/DeploymentLoopDiagram'
 import { MotionExtractionDiagram } from './diagram/MotionExtractionDiagram'
+import { FullPipelineDiagram } from './diagram/FullPipelineDiagram'
 import { blueTheme, redTheme } from './diagram/diagramTokens'
 import type { RobotMove } from './diagram/primitives/RobotDancer'
 
-const EMBED_NAMES = ['pipeline', 'generalist', 'sonic', 'vla', 'deployment', 'extraction'] as const
+const EMBED_NAMES = ['pipeline', 'generalist', 'sonic', 'vla', 'deployment', 'extraction', 'e2e'] as const
 export type EmbedName = (typeof EMBED_NAMES)[number]
 
 export function parseEmbedName(params: URLSearchParams): EmbedName | null {
@@ -56,6 +57,13 @@ export function EmbedPage({ name }: { name: EmbedName }) {
     return (
       <div className="embed-page">
         <DeploymentLoopDiagram showCaption={showCaption} />
+      </div>
+    )
+  }
+  if (name === 'e2e') {
+    return (
+      <div className="embed-page">
+        <FullPipelineDiagram showCaption={showCaption} />
       </div>
     )
   }

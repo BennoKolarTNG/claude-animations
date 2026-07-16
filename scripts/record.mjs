@@ -22,6 +22,7 @@ const DIAGRAMS = {
   extraction: { loop: 20900, height: 474, query: 'embed=extraction&caption=off' },
   deployment: { loop: 21600, height: 510, query: 'embed=deployment&caption=off' },
   vla: { loop: 23800, height: 606, query: 'embed=vla&caption=off' },
+  e2e: { loop: 18200, height: 322, query: 'embed=e2e&caption=off' },
 }
 const WIDTH = 1200
 const [, , which = 'all', extra = ''] = process.argv
