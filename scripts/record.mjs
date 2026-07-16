@@ -12,11 +12,16 @@ import { chromium } from 'playwright'
 import { execSync } from 'node:child_process'
 import { mkdirSync, readdirSync, renameSync, rmSync } from 'node:fs'
 
-// Loop length and a viewport tall enough for card + caption at 1200px.
+// Loop length, embed query, and a viewport that fits the caption-less
+// card at 1200px wide (svg scale ≈ 1.1833 + 58px chrome).
 const DIAGRAMS = {
-  pipeline: { loop: 15700, height: 480 },
-  generalist: { loop: 22000, height: 535 },
-  sonic: { loop: 43300, height: 550 },
+  pipeline: { loop: 15700, height: 410, query: 'embed=pipeline&caption=off' },
+  'pipeline-red': { loop: 15700, height: 410, query: 'embed=pipeline&theme=red&move=kick&caption=off' },
+  generalist: { loop: 22000, height: 462, query: 'embed=generalist&caption=off' },
+  sonic: { loop: 43300, height: 476, query: 'embed=sonic&caption=off' },
+  extraction: { loop: 20900, height: 474, query: 'embed=extraction&caption=off' },
+  deployment: { loop: 21600, height: 510, query: 'embed=deployment&caption=off' },
+  vla: { loop: 23800, height: 606, query: 'embed=vla&caption=off' },
 }
 const WIDTH = 1200
 const [, , which = 'all', extra = ''] = process.argv
@@ -29,7 +34,7 @@ for (const name of targets) {
     console.error(`unknown diagram "${name}" — use ${Object.keys(DIAGRAMS).join('/')}`)
     process.exit(1)
   }
-  const { loop, height } = DIAGRAMS[name]
+  const { loop, height, query } = DIAGRAMS[name]
   const dir = `recordings/.tmp-${name}`
   const browser = await chromium.launch({
     executablePath: '/snap/bin/chromium',
@@ -41,7 +46,7 @@ for (const name of targets) {
   })
   const page = await context.newPage()
   const params = extra ? `&${extra}` : ''
-  await page.goto(`http://localhost:5199/?embed=${name}${params}`, {
+  await page.goto(`http://localhost:5199/?${query}${params}`, {
     waitUntil: 'networkidle',
   })
   // One full loop plus a small tail.

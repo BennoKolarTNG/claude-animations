@@ -4,7 +4,6 @@ import { SonicArchitectureDiagram } from './diagram/SonicArchitectureDiagram'
 import { VlaSplitDiagram } from './diagram/VlaSplitDiagram'
 import { DeploymentLoopDiagram } from './diagram/DeploymentLoopDiagram'
 import { MotionExtractionDiagram } from './diagram/MotionExtractionDiagram'
-import { VlaEvolutionDiagram } from './diagram/VlaEvolutionDiagram'
 import { blueTheme, redTheme } from './diagram/diagramTokens'
 import type { RobotMove } from './diagram/primitives/RobotDancer'
 
@@ -47,14 +46,9 @@ export function EmbedPage({ name }: { name: EmbedName }) {
     )
   }
   if (name === 'vla') {
-    // ?v=b selects the before/after "evolution" variant.
     return (
       <div className="embed-page">
-        {params.get('v') === 'b' ? (
-          <VlaEvolutionDiagram showCaption={showCaption} />
-        ) : (
-          <VlaSplitDiagram showCaption={showCaption} />
-        )}
+        <VlaSplitDiagram showCaption={showCaption} />
       </div>
     )
   }
