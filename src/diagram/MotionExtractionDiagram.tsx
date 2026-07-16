@@ -291,8 +291,13 @@ export function MotionExtractionDiagram({
           strokeDasharray={1}
           style={{
             strokeDashoffset: since('smooth') ? 0 : 1,
-            transition: 'stroke-dashoffset 1600ms var(--diagram-ease)',
-            opacity: 0.65,
+            // The round line-cap of the hidden dash peeks through at the
+            // offset boundary — keep the path fully invisible until the
+            // draw-in actually starts.
+            opacity: since('smooth') ? 0.65 : 0,
+            transition: since('smooth')
+              ? 'stroke-dashoffset 1600ms var(--diagram-ease), opacity 150ms ease'
+              : 'opacity 150ms ease',
           }}
         />
         {/* red playhead (GEM's timeline sweep) */}
